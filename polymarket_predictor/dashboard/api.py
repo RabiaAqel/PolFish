@@ -1209,3 +1209,139 @@ def pipeline_config():
             "price_output": cfg["price_output"],
         }
     return jsonify({"success": True, "data": stages})
+
+
+# ---------------------------------------------------------------------------
+# Overnight / Rolling Loop Endpoints
+# ---------------------------------------------------------------------------
+
+_overnight_runner = None
+_overnight_thread = None
+
+
+@dashboard_bp.route("/overnight/start", methods=["POST"])
+def overnight_start():
+    """Start an overnight calibration run.
+    Body: {total: 50, budget: 25.0}
+    Resumes from checkpoint if interrupted.
+    """
+    global _overnight_runner, _overnight_thread
+
+    data = request.get_json(silent=True) or {}
+    total = int(data.get("total", 50))
+    budget = float(data.get("budget", 25.0))
+
+    from polymarket_predictor.overnight.runner import OvernightRunner
+    _overnight_runner = OvernightRunner(total=total, budget=budget)
+
+    def _run():
+        asyncio.run(_overnight_runner.run())
+
+    _overnight_thread = threading.Thread(target=_run, daemon=True)
+    _overnight_thread.start()
+
+    return jsonify({"success": True, "status": "started", "total": total, "budget": budget}), 202
+
+
+@dashboard_bp.route("/overnight/stop", methods=["POST"])
+def overnight_stop():
+    """Gracefully stop the overnight run after current prediction."""
+    global _overnight_runner
+    if _overnight_runner:
+        _overnight_runner.request_stop()
+        return jsonify({"success": True, "status": "stop_requested"})
+    return jsonify({"success": False, "error": "No run in progress"}), 400
+
+
+@dashboard_bp.route("/overnight/status", methods=["GET"])
+def overnight_status():
+    """Get current overnight run state."""
+    from polymarket_predictor.overnight.state import StateManager
+    sm = StateManager()
+    state = sm.load()
+    return jsonify({
+        "success": True,
+        "data": {
+            "run_id": state.run_id,
+            "mode": state.mode,
+            "status": state.status,
+            "current_round": state.current_round,
+            "completed": state.completed,
+            "failed": state.failed,
+            "skipped": state.skipped,
+            "total_target": state.total_target,
+            "total_cost_usd": round(state.total_cost_usd, 2),
+            "max_budget_usd": state.max_budget_usd,
+            "current_market": state.current_market,
+            "current_phase": state.current_phase,
+            "started_at": state.started_at,
+            "last_checkpoint_at": state.last_checkpoint_at,
+            "results_count": len(state.results),
+            "recent_results": state.results[-5:] if state.results else [],
+            "recent_errors": state.errors[-5:] if state.errors else [],
+            "strategy_version": state.strategy_version,
+        },
+    })
+
+
+@dashboard_bp.route("/overnight/results", methods=["GET"])
+def overnight_results():
+    """Get all overnight results."""
+    from polymarket_predictor.overnight.state import StateManager
+    sm = StateManager()
+    state = sm.load()
+    return jsonify({
+        "success": True,
+        "data": {
+            "results": state.results,
+            "summary": {
+                "completed": state.completed,
+                "failed": state.failed,
+                "total_cost_usd": round(state.total_cost_usd, 2),
+                "avg_cost": round(state.total_cost_usd / max(state.completed, 1), 4),
+                "predictions_with_edge": sum(1 for r in state.results if abs(r.get("edge", 0) or 0) > 0.03),
+                "bets_placed": sum(1 for r in state.results if r.get("bet_placed")),
+            },
+        },
+    })
+
+
+# Rolling loop endpoints
+_rolling_loop = None
+_rolling_thread = None
+
+
+@dashboard_bp.route("/rolling/start", methods=["POST"])
+def rolling_start():
+    """Start a continuous rolling trading loop.
+    Body: {round_interval: 3600, deep_per_round: 3, budget_per_round: 12, max_budget: 100}
+    """
+    global _rolling_loop, _rolling_thread
+
+    data = request.get_json(silent=True) or {}
+
+    from polymarket_predictor.overnight.runner import RollingLoop
+    _rolling_loop = RollingLoop(
+        round_interval=int(data.get("round_interval", 3600)),
+        deep_per_round=int(data.get("deep_per_round", 3)),
+        budget_per_round=float(data.get("budget_per_round", 12.0)),
+        max_total_budget=float(data.get("max_budget", 100.0)),
+    )
+
+    def _run():
+        asyncio.run(_rolling_loop.run())
+
+    _rolling_thread = threading.Thread(target=_run, daemon=True)
+    _rolling_thread.start()
+
+    return jsonify({"success": True, "status": "started"}), 202
+
+
+@dashboard_bp.route("/rolling/stop", methods=["POST"])
+def rolling_stop():
+    """Gracefully stop the rolling loop after current round."""
+    global _rolling_loop
+    if _rolling_loop:
+        _rolling_loop.request_stop()
+        return jsonify({"success": True, "status": "stop_requested"})
+    return jsonify({"success": False, "error": "No loop running"}), 400
