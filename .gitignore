@@ -1,0 +1,47 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment (secrets)
+.env
+.env.local
+.env.*.local
+.env.development
+.env.test
+.env.production
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# Node
+node_modules/
+MiroFish/frontend/dist/
+MiroFish/frontend/node_modules/
+
+# Data (user-specific, regenerated)
+polymarket_predictor/data/*.jsonl
+polymarket_predictor/data/backtest/
+polymarket_predictor/data/autopilot_config.json
+polymarket_predictor/data/strategy.json
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Temp
+/tmp/
+test_seed.txt
+plan.md
+*.log
