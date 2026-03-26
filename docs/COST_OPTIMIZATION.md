@@ -53,9 +53,11 @@ All prices are per 1 million tokens (USD):
 
 | Preset | Cost | Breakdown |
 |--------|------|-----------|
-| **cheapest** | $0.02 | All DeepSeek -- minimum possible cost |
+| **local** | $0.00 | All Ollama (llama3.1:8b) -- zero API cost |
+| **cheapest** | $0.02 | All DeepSeek -- minimum possible cloud cost |
 | **budget** | $0.03 | DeepSeek prep + GPT-4o-mini sim/report |
 | **gemini** | $0.03 | All Gemini Flash -- fast and cheap |
+| **hybrid_local** | $0.12 | Ollama for all prep stages + GPT-4o for report only |
 | **balanced** | $0.42 | DeepSeek prep + Gemini profiles + GPT-4o sim/report |
 | **premium** | $0.54 | DeepSeek prep + Gemini profiles + Claude sim + GPT-4o report |
 | **best** | $0.58 | All GPT-4o -- maximum quality |
@@ -64,9 +66,11 @@ All prices are per 1 million tokens (USD):
 
 | Preset | 1 prediction | 10 predictions | 50 predictions | 100 predictions |
 |--------|-------------|---------------|----------------|-----------------|
+| **local** | $0.00 | $0.00 | $0.00 | $0.00 |
 | **cheapest** | $0.02 | $0.20 | $1.00 | $2.00 |
 | **budget** | $0.03 | $0.30 | $1.50 | $3.00 |
 | **gemini** | $0.03 | $0.30 | $1.50 | $3.00 |
+| **hybrid_local** | $0.12 | $1.20 | $6.00 | $12.00 |
 | **balanced** | $0.42 | $4.20 | $21.00 | $42.00 |
 | **premium** | $0.54 | $5.40 | $27.00 | $54.00 |
 | **best** | $0.58 | $5.80 | $29.00 | $58.00 |
@@ -130,6 +134,8 @@ Note: With the original 15-round default, balanced cost was ~$0.42 and all-GPT-4
 | Best reasoning quality | `premium` | Claude Sonnet excels at nuanced debate |
 | Maximum accuracy | `best` | All GPT-4o for consistent quality |
 | Development/testing | `cheapest` or `gemini` | Iterate fast without burning budget |
+| Zero cost (local GPU) | `local` | All Ollama, $0.00/prediction, needs ~5 GB RAM |
+| Local + quality reports | `hybrid_local` | Ollama prep + GPT-4o report at $0.12/prediction |
 | Production autopilot | `balanced` | Sustainable for 100+ predictions/week |
 
 ### When to Use Multiple Variants
@@ -141,6 +147,65 @@ Running multiple seed variants (2-5) with ensemble averaging improves prediction
 ```
 
 Recommendation: Use 1 variant for quick screening, 3 variants for high-conviction deep predictions.
+
+---
+
+## Ollama Local Presets
+
+The `local` and `hybrid_local` presets use Ollama for zero-cost or near-zero-cost predictions by running open-source models on your own hardware.
+
+### local preset ($0.00/prediction)
+
+All five pipeline stages run on `llama3.1:8b` via Ollama. No API keys required (except Zep). Ideal for development, testing, and unlimited iteration. Quality is lower than cloud models, especially for the report stage.
+
+### hybrid_local preset (~$0.12/prediction)
+
+Ontology, graph, profiles, and simulation run locally on `llama3.1:8b`. Only the report stage uses GPT-4o (cloud), since report quality depends heavily on model capability. This gives a 71% cost reduction vs balanced while maintaining report quality.
+
+```
+hybrid_local — per-stage cost breakdown:
+
+Stage         Model              Cost
+------------- ------------------ ------
+Ontology      llama3.1:8b (local) $0.00
+Graph         llama3.1:8b (local) $0.00
+Profiles      llama3.1:8b (local) $0.00
+Simulation    llama3.1:8b (local) $0.00
+Report        gpt-4o (cloud)      $0.12
+------------- ------------------ ------
+TOTAL                              $0.12
+```
+
+---
+
+## Dynamic Cost Estimation
+
+Cost estimates are now computed dynamically based on the active preset and model configuration, replacing the earlier hardcoded $0.42 assumption. The `CostCalculator` reads the current `PIPELINE_MODELS` config, looks up per-model token pricing from `MODEL_PRICING`, and computes per-stage costs using observed token usage baselines.
+
+This means:
+- `GET /api/polymarket/cost/estimate` reflects your actual config, not a fixed number
+- Overnight runner and rolling loop use dynamic cost estimates for budget tracking
+- Switching presets immediately updates all cost projections
+
+---
+
+## Actual Run Data
+
+### TISZA overnight run (GPT-4o, 64 agents, 40 rounds)
+
+A production overnight run with the `balanced` preset and 64 template-injected agents:
+
+```
+Total predictions: 20
+Total cost:        $8.52
+Avg cost/prediction: $0.426
+Duration:          ~4 hours
+Preset:            balanced (GPT-4o for simulation + report)
+Agents per sim:    64 (10 organic + 25 template + graph-derived)
+Rounds:            40
+```
+
+The higher-than-default agent count (64 vs 10) increased simulation token usage but the per-prediction cost remained close to the baseline $0.42 because the extra agents mostly increased simulation input tokens, which are cheaper than output tokens for GPT-4o.
 
 ---
 
@@ -305,7 +370,7 @@ This shows which model is assigned to each stage, whether the API key is configu
 
 ## Cost Optimization Checklist
 
-1. Start with the `cheapest` or `gemini` preset during development
+1. Start with the `local` or `cheapest` preset during development ($0.00-$0.02/prediction)
 2. Switch to `balanced` for production (best quality/cost ratio)
 3. Set `PREDICTOR_MAX_ROUNDS=10` unless you need maximum depth
 4. Set `PREDICTOR_VARIANTS=1` for autopilot, `3` for manual high-conviction predictions

@@ -1,6 +1,6 @@
 # API Reference
 
-All endpoints are served by the Flask backend at `http://localhost:5001`. The Polymarket prediction endpoints are registered under the `/api/polymarket/` prefix.
+All endpoints are served by the Flask backend at `http://localhost:5001`. The Polymarket prediction endpoints are registered under the `/api/polymarket/` prefix. There are **54 endpoints** in total.
 
 **Common response format:**
 
@@ -1418,6 +1418,122 @@ Get the current blending weights used to combine LLM and quantitative prediction
   "data": {
     "llm_weight": 0.5,
     "quant_weight": 0.5
+  }
+}
+```
+
+---
+
+## Knowledge Base
+
+The Knowledge Base provides persistent market intelligence that accumulates over time. Each prediction adds context to the store, building institutional memory for cross-market analysis.
+
+### GET /api/polymarket/knowledge/entries
+
+Get all context store entries with optional filtering.
+
+**Query parameters:**
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| `category` | string | (none) | Filter by market category (e.g., `politics`, `crypto`). |
+| `limit` | int | `100` | Max entries to return. |
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "entries": [
+      {
+        "market_id": "will-bitcoin-reach-100k-in-2025",
+        "question": "Will Bitcoin reach $100k in 2025?",
+        "category": "crypto",
+        "market_odds_at_prediction": 0.65,
+        "our_prediction": 0.72,
+        "key_factors": ["ETF inflows", "Institutional adoption"],
+        "news_summary": "Bitcoin ETFs saw record inflows...",
+        "agent_consensus": "bullish",
+        "outcome": "pending",
+        "was_correct": null,
+        "timestamp": "2025-03-20T10:30:00"
+      }
+    ],
+    "total": 45
+  }
+}
+```
+
+---
+
+### GET /api/polymarket/knowledge/accuracy
+
+Get prediction accuracy broken down by market category. Useful for identifying which categories the system predicts well and which need improvement.
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "crypto": { "total": 15, "correct": 9, "accuracy": 0.60 },
+    "politics": { "total": 10, "correct": 7, "accuracy": 0.70 },
+    "science": { "total": 5, "correct": 4, "accuracy": 0.80 }
+  }
+}
+```
+
+---
+
+### GET /api/polymarket/knowledge/related
+
+Find context entries related to a text query. Returns entries whose question or key factors match the query, enabling cross-market intelligence lookups.
+
+**Query parameters:**
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| `q` | string | required | Search query (matches against question and key factors). |
+| `limit` | int | `10` | Max results. |
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "entries": [...],
+    "query": "bitcoin"
+  }
+}
+```
+
+---
+
+### GET /api/polymarket/knowledge/stats
+
+Get knowledge base statistics including total entries, category distribution, and outcome breakdown.
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "total_entries": 120,
+    "categories": {
+      "crypto": 25,
+      "politics": 30,
+      "science": 15,
+      "world": 20,
+      "other": 30
+    },
+    "outcomes": {
+      "pending": 45,
+      "correct": 50,
+      "incorrect": 25
+    }
   }
 }
 ```

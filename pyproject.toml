@@ -10,5 +10,10 @@ dependencies = [
     "httpx>=0.27",
 ]
 
+[tool.pytest.ini_options]
+markers = [
+    "e2e: End-to-end integration tests (require API keys, cost money)",
+]
+
 [tool.setuptools.packages.find]
 include = ["polymarket_predictor*"]

@@ -68,6 +68,12 @@ These override the preset for individual pipeline stages. Only needed when using
 | `PREDICTOR_MIN_EDGE` | float | `0.10` | Minimum edge (as decimal) to generate a signal. |
 | `PREDICTOR_MIN_VOLUME` | float | `10000` | Minimum market volume (USD) for signal generation. |
 
+### Template Agent Injection
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `MAX_TEMPLATE_AGENTS` | int | `25` | Maximum number of template agents injected into each simulation. The system includes 26 built-in archetypes (retail traders, institutional investors, contrarians, whales, etc.). Set to `0` to disable template injection. |
+
 ### Infrastructure
 
 | Variable | Type | Default | Description |

@@ -489,6 +489,113 @@ Then restart the backend.
 
 ---
 
+### OASIS MBTI KeyError (template agent injection)
+
+**Symptom:** `KeyError: 'mbti'` or `KeyError: 'gender'` during simulation startup after template agents are injected.
+
+**Cause:** The OASIS simulation engine requires every agent profile to have `mbti`, `gender`, `age`, and `country` fields. When template agents are injected, the system adds these fields to the new profiles, but organic agents (generated from the knowledge graph) may be missing them.
+
+**How the fix works:** The `inject_template_agents()` method now patches ALL profiles (not just the new templates) to ensure the required OASIS fields are present. It cycles through a set of MBTI types, genders, ages, and countries for any profile that is missing these fields.
+
+**If you still see this error:**
+
+1. Check that you are running the latest version of `orchestrator/pipeline.py` -- the fix is in the `inject_template_agents` method.
+2. The fix applies to `reddit_profiles.json` only. If OASIS also reads from `twitter_profiles.csv`, verify that the CSV includes required columns.
+3. To skip template injection entirely, set `MAX_TEMPLATE_AGENTS=0` in your `.env` file.
+
+---
+
+### Zep entity type limit (max 10 on paid plan)
+
+**Symptom:** `400 Bad Request` or `422 Unprocessable Entity` from Zep when building the knowledge graph, with a message about exceeding entity type limits.
+
+**Cause:** Zep imposes a maximum of 10 entity types per graph on paid plans (fewer on free plans). If the ontology generates more than 10 distinct entity types (e.g., Person, Organization, Event, Location, Policy, Technology, etc.), the graph build fails when trying to register the 11th type.
+
+**Fixes:**
+
+1. **Reduce entity types in ontology:** The ontology generator can produce many fine-grained types. Edit the ontology prompt to consolidate types (e.g., merge "Company" and "Organization" into one type).
+
+2. **Increase the graph build timeout:** Sometimes the error appears as a timeout rather than a clear type limit message. The pipeline has a configurable graph build timeout.
+
+3. **Upgrade your Zep plan:** Higher-tier plans may support more entity types. Check the Zep documentation for current limits.
+
+4. **Use a simpler seed:** Seeds with fewer entities (e.g., a single market question rather than a complex multi-topic document) produce fewer entity types.
+
+---
+
+### Zep request timeout (408)
+
+**Symptom:** `408 Request Timeout` from Zep API during knowledge graph operations (building graph, adding episodes, querying).
+
+**Cause:** Zep operations can be slow when the graph has accumulated many nodes or when the server is under load. The default HTTP timeout may be too short for complex graph queries.
+
+**Fixes:**
+
+1. **Retry:** The pipeline includes retry logic with exponential backoff for Zep operations. Transient 408 errors are typically handled automatically.
+
+2. **Reduce graph complexity:** Fewer seed articles and simpler ontologies produce smaller graphs that query faster.
+
+3. **Check Zep server status:** If you are hitting consistent timeouts, the Zep service may be experiencing degraded performance. Check the Zep status page or dashboard.
+
+4. **Clear old episodes:** A large number of accumulated episodes can slow down graph operations. Clean up unused episodes through the Zep dashboard.
+
+---
+
+### Local model PascalCase issue (8B models)
+
+**Symptom:** Prediction extraction fails or returns `None` when using Ollama local models (especially `llama3.1:8b`). The simulation runs but the PredictionParser cannot find a probability in the report.
+
+**Cause:** Smaller models (8B parameters) do not reliably follow the structured output format required by the PredictionParser. Specifically, they may not produce the expected `Probability of YES outcome: XX%` pattern in PascalCase, or they may embed the probability in a different format (e.g., `probability: 0.XX` instead of `XX%`).
+
+**Fixes:**
+
+1. **Use a larger local model for report generation:** Switch the report stage to a more capable model:
+   ```bash
+   PIPELINE_PRESET=custom
+   REPORT_MODEL=qwen2.5:14b   # or llama3.1:70b
+   ```
+
+2. **Use hybrid_local preset:** This runs everything locally except the report stage, which uses GPT-4o for reliable structured output:
+   ```bash
+   PIPELINE_PRESET=hybrid_local
+   ```
+
+3. **Check parser fallback:** The PredictionParser tries regex extraction first, then falls back to LLM extraction. If both fail, it returns `None`. The LLM fallback requires a cloud model API key.
+
+4. **Accept lower extraction reliability:** With 8B models, expect 60-70% successful extractions vs 95%+ with cloud models. Run more variants to compensate.
+
+---
+
+### Simulation too slow with 64 agents on GPT-4o-mini
+
+**Symptom:** A single deep prediction takes 15+ minutes when running with 50-64 agents on `gpt-4o-mini`, even with reduced rounds.
+
+**Cause:** Each simulation round requires one LLM call per agent. With 64 agents and 40 rounds, that is 2,560 sequential LLM calls. While `gpt-4o-mini` is cheap ($0.15/$0.60 per 1M tokens), its per-call latency adds up. The MiroFish simulation runner processes agents sequentially within each round.
+
+**Fixes:**
+
+1. **Reduce agent count:** Template injection defaults to 25 agents on top of ~10 organic agents. Set `MAX_TEMPLATE_AGENTS=10` for faster runs:
+   ```bash
+   MAX_TEMPLATE_AGENTS=10
+   ```
+
+2. **Reduce rounds:** 20-25 rounds is usually sufficient for convergence:
+   ```bash
+   MAX_SIMULATION_ROUNDS=20
+   ```
+
+3. **Use a faster model:** Groq inference is significantly faster than OpenAI for open-source models. Use `llama-3.1-8b-instant` on Groq for simulation:
+   ```bash
+   PIPELINE_PRESET=custom
+   SIMULATION_MODEL=llama-3.1-8b-instant
+   ```
+
+4. **Use the local preset:** Ollama with `llama3.1:8b` processes local inference without network latency, which can be faster than cloud API calls with many sequential requests.
+
+5. **Expected timing:** With 64 agents and 40 rounds on GPT-4o-mini, expect 10-20 minutes per prediction. With 20 agents and 20 rounds, expect 3-5 minutes.
+
+---
+
 ## Diagnostic Commands
 
 ### Check system health

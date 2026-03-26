@@ -94,6 +94,18 @@
   |  +---------------------------+   +----------------------------------+  |
   |                                                                        |
   |  +---------------------------+   +----------------------------------+  |
+  |  | ContextStore              |   | TemplateAgents                   |  |
+  |  | (knowledge/context_store  |   | (agents/templates.py)            |  |
+  |  |  .py)                     |   |                                  |  |
+  |  | Persistent market intel:  |   | 26 market-participant archetypes |  |
+  |  | - Cross-market context    |   | injected into simulations:       |  |
+  |  | - Accuracy by category    |   | - Retail/institutional traders   |  |
+  |  | - Avoid re-researching    |   | - Contrarians, momentum, whales  |  |
+  |  |   same topics             |   | - Domain experts, superforecasters|  |
+  |  | - Historical patterns     |   | - Includes OASIS-required fields |  |
+  |  +---------------------------+   +----------------------------------+  |
+  |                                                                        |
+  |  +---------------------------+   +----------------------------------+  |
   |  | MarketGrouper             |   | ThesisApplier                    |  |
   |  | (thesis/grouper.py)       |   | (thesis/applier.py)              |  |
   |  |                           |   |                                  |  |
@@ -376,6 +388,14 @@ monte_carlo/
   simulator.py   -----> MonteCarloSimulator, ParameterSweepResult
     |
     v
+knowledge/
+  context_store.py --> ContextStore, MarketContext (persistent market intelligence)
+    |
+    v
+agents/
+  templates.py   -----> MARKET_PARTICIPANT_TEMPLATES, get_templates (26 archetypes)
+    |
+    v
 thesis/
   grouper.py     -----> MarketGrouper, MarketGroup (group related markets)
   applier.py     -----> ThesisApplier, TierPrediction (apply thesis to tiers)
@@ -428,6 +448,7 @@ All persistent data lives in `polymarket_predictor/data/`:
 | `monte_carlo_results.json` | Cached Monte Carlo simulation results |
 | `method_comparisons.jsonl` | Per-prediction LLM vs quant comparison log |
 | `method_performance.json` | Aggregated method accuracy and blend weights |
+| `context_store.jsonl` | Persistent market intelligence (knowledge base) |
 
 ## Frontend Architecture
 
@@ -441,6 +462,7 @@ The frontend is a Vue 3 single-page application built with Vite and served on po
 | `PaperTradingView` | `/paper-trading` | Portfolio dashboard, open positions, P&L charts |
 | `BacktestView` | `/backtest` | Run backtests, view calibration, incremental optimization |
 | `DecisionLogView` | `/decision-log` | Browse and search the decision ledger |
+| `KnowledgeBaseView` | `/knowledge-base` | Browse accumulated market intelligence and accuracy |
 | `HowItWorksView` | `/how-it-works` | Visual explainer of the pipeline |
 | `SimulationView` | `/simulation` | MiroFish simulation setup and execution |
 | `ReportView` | `/report` | View generated simulation reports |
@@ -463,5 +485,6 @@ The frontend is a Vue 3 single-page application built with Vite and served on po
 | DeepSeek API | LLM for preprocessing stages | Recommended |
 | Gemini API | LLM for agent profiles | Optional |
 | Anthropic API | Claude for simulation reasoning | Optional |
+| Ollama | Local model inference (OpenAI-compatible) | Optional (free, no key) |
 | Zep API | Knowledge graph memory | Yes |
 | DuckDuckGo | News article search | Yes (free, no key) |

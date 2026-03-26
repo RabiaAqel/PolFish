@@ -88,7 +88,14 @@ curl -X POST http://localhost:5001/api/polymarket/predict/deep \
 - **Self-improving method weights** -- MethodTracker auto-adjusts LLM vs quantitative blend based on resolved market outcomes
 - **Paper trading** -- Full portfolio simulation with Kelly-optimal sizing, P&L tracking, and auto-resolution
 - **Autopilot** -- End-to-end autonomous cycles: scan, predict, bet, resolve, optimize
-- **6 pipeline presets** -- From free-tier Gemini ($0.02/prediction) to premium Claude ($0.54/prediction)
+- **Ollama local model support** -- Run the entire pipeline locally at $0.00/prediction using the `local` preset, or use `hybrid_local` for local prep + cloud reports at ~$0.12/prediction
+- **Knowledge Base (context store)** -- Persistent market intelligence that accumulates over time; tracks accuracy by category, avoids re-researching the same topics, and provides cross-market context
+- **Template agent injection** -- 26 built-in market-participant archetypes (retail traders, institutional investors, contrarians, whales, superforecasters) injected alongside graph-derived agents for richer simulation dynamics
+- **Superforecaster prompt methodology** -- Report generation uses a structured 6-step Superforecaster process (decompose, base rates, evidence, factors, calibrate, predict) to reduce LLM default-probability bias
+- **Dynamic cost estimation** -- Costs computed from actual model config and token pricing, replacing the earlier hardcoded $0.42 assumption
+- **Enhanced Gamma API** -- Market search, event sub-market fetching, order book summaries, and tradable market filtering
+- **Niche scoring** -- Scanner ranks markets by "nicheness" (category, keywords, volume) to find inefficient markets with more alpha potential
+- **8 pipeline presets** -- From free local Ollama ($0.00/prediction) to premium Claude ($0.54/prediction)
 - **Decision ledger** -- Append-only JSONL audit log of every system decision
 
 ## How It Works (Summary)
@@ -128,9 +135,13 @@ mirofish/
     cost_calculator.py         # Cost estimation engine
     cost_tracker.py            # Runtime token usage tracking
     cli.py                     # CLI entry point
-    dashboard/api.py           # Flask blueprint (all 48 REST endpoints)
+    dashboard/api.py           # Flask blueprint (all 54 REST endpoints)
     scrapers/                  # Polymarket + news data fetching
     seeds/                     # Seed document generation
+    knowledge/                 # Persistent market intelligence (context store)
+      context_store.py         # MarketContext records, accuracy tracking
+    agents/                    # Template agent archetypes
+      templates.py             # 26 market-participant templates
     scanner/                   # Market discovery and ranking
     orchestrator/              # MiroFish pipeline driver
     parser/                    # Prediction extraction from reports
@@ -153,7 +164,7 @@ mirofish/
     autopilot/                 # Fully autonomous prediction cycles
     ledger/                    # Append-only decision audit log
     loop/                      # Continuous trading loop runner
-    tests/                     # Test suite
+    tests/                     # Test suite (523+ tests)
   docs/                        # This documentation
   start.sh                     # One-command launcher
 ```
