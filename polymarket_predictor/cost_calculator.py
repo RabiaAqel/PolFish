@@ -109,7 +109,7 @@ class CostCalculator:
             "all_gpt4o": {"cost_usd": round(self._all_same_model_cost("gpt-4o", rounds, agents), 4), "model": "gpt-4o", "label": "All GPT-4o"},
             "all_gpt4o_mini": {"cost_usd": round(self._all_same_model_cost("gpt-4o-mini", rounds, agents), 4), "model": "gpt-4o-mini", "label": "All GPT-4o Mini"},
             "all_deepseek": {"cost_usd": round(self._all_same_model_cost("deepseek-chat", rounds, agents), 4), "model": "deepseek-chat", "label": "All DeepSeek V3"},
-            "all_gemini_flash": {"cost_usd": round(self._all_same_model_cost("gemini-2.0-flash", rounds, agents), 4), "model": "gemini-2.0-flash", "label": "All Gemini Flash"},
+            "all_gemini_flash": {"cost_usd": round(self._all_same_model_cost("gemini-2.5-flash-lite", rounds, agents), 4), "model": "gemini-2.5-flash-lite", "label": "All Gemini Flash-Lite"},
             "all_gemini_pro": {"cost_usd": round(self._all_same_model_cost("gemini-2.5-pro", rounds, agents), 4), "model": "gemini-2.5-pro", "label": "All Gemini Pro"},
             "all_claude_sonnet": {"cost_usd": round(self._all_same_model_cost("claude-sonnet-4-20250514", rounds, agents), 4), "model": "claude-sonnet-4-20250514", "label": "All Claude Sonnet"},
             "all_mistral_small": {"cost_usd": round(self._all_same_model_cost("mistral-small-latest", rounds, agents), 4), "model": "mistral-small-latest", "label": "All Mistral Small"},

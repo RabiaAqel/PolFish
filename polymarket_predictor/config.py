@@ -70,10 +70,12 @@ MODEL_PRICING = {
     "deepseek-chat": {"input": 0.14, "output": 0.28, "provider": "deepseek"},
     "deepseek-reasoner": {"input": 0.55, "output": 2.19, "provider": "deepseek"},
     # Gemini
-    "gemini-2.0-flash": {"input": 0.075, "output": 0.30, "provider": "gemini"},
-    "gemini-2.0-flash-lite": {"input": 0.075, "output": 0.30, "provider": "gemini"},
+    "gemini-2.5-flash-lite": {"input": 0.075, "output": 0.30, "provider": "gemini"},
     "gemini-2.5-flash": {"input": 0.15, "output": 0.60, "provider": "gemini"},
     "gemini-2.5-pro": {"input": 1.25, "output": 10.00, "provider": "gemini"},
+    # Deprecated aliases (retiring June 2026) — kept for backward compat
+    "gemini-2.0-flash": {"input": 0.075, "output": 0.30, "provider": "gemini"},
+    "gemini-2.0-flash-lite": {"input": 0.075, "output": 0.30, "provider": "gemini"},
     # Anthropic (Claude)
     "claude-sonnet-4-20250514": {"input": 3.00, "output": 15.00, "provider": "anthropic"},
     "claude-haiku-3.5": {"input": 0.80, "output": 4.00, "provider": "anthropic"},
@@ -112,9 +114,9 @@ def _stage_cfg(env_prefix: str, default_model: str) -> dict:
 # Pipeline presets — switch with one env var: PIPELINE_PRESET
 #
 # Set PIPELINE_PRESET in .env to one of:
-#   "balanced"  — DeepSeek prep + Gemini profiles + GPT-4o sim/report (~$0.42)
+#   "balanced"  — DeepSeek prep + Gemini 2.5 Flash-Lite profiles + GPT-4o sim/report (~$0.42)
 #   "budget"    — DeepSeek prep + GPT-4o-mini sim/report (~$0.03)
-#   "premium"   — DeepSeek prep + Claude sim + GPT-4o report (~$0.54)
+#   "premium"   — DeepSeek prep + Gemini profiles + Claude sim + GPT-4o report (~$0.54)
 #   "cheapest"  — All DeepSeek (~$0.02)
 #   "best"      — All GPT-4o (~$0.58)
 #   "gemini"    — All Gemini 2.5 Flash (~$0.03)
@@ -124,7 +126,7 @@ _PRESETS = {
     "balanced": {
         "ontology": "deepseek-chat",
         "graph": "deepseek-chat",
-        "profiles": "gemini-2.0-flash-lite",
+        "profiles": "gemini-2.5-flash-lite",
         "simulation": "gpt-4o",
         "report": "gpt-4o",
     },
@@ -138,7 +140,7 @@ _PRESETS = {
     "premium": {
         "ontology": "deepseek-chat",
         "graph": "deepseek-chat",
-        "profiles": "gemini-2.0-flash-lite",
+        "profiles": "gemini-2.5-flash-lite",
         "simulation": "claude-sonnet-4-20250514",
         "report": "gpt-4o",
     },
@@ -159,7 +161,7 @@ _PRESETS = {
     "gemini": {
         "ontology": "gemini-2.5-flash",
         "graph": "gemini-2.5-flash",
-        "profiles": "gemini-2.0-flash-lite",
+        "profiles": "gemini-2.5-flash-lite",
         "simulation": "gemini-2.5-flash",
         "report": "gemini-2.5-flash",
     },

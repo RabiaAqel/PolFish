@@ -1,6 +1,8 @@
 """MiroFish pipeline orchestrator — drives the full API lifecycle programmatically."""
 
 import asyncio
+import csv
+import json
 import logging
 from pathlib import Path
 
@@ -51,6 +53,11 @@ class MiroFishPipeline:
         sim_id = await self.create_simulation(project_id)
         await self.prepare_simulation(sim_id)
         logger.info("Simulation prepared: %s", sim_id)
+
+        # Step 3.5: Inject template agents for richer simulation dynamics
+        injected = self.inject_template_agents(sim_id)
+        if injected > 0:
+            logger.info("Injected %d template agents into %s", injected, sim_id)
 
         # Step 4: Run simulation
         await self.run_simulation(sim_id, max_rounds)
@@ -247,6 +254,141 @@ class MiroFishPipeline:
         resp = await self.client.get(f"/report/{report_id}")
         resp.raise_for_status()
         return resp.json().get("data", {})
+
+    # ------------------------------------------------------------------
+    # Template agent injection
+    # ------------------------------------------------------------------
+
+    # Resolve the MiroFish simulation data directory relative to this file.
+    _SIM_DATA_DIR = Path(__file__).resolve().parent.parent.parent / "MiroFish" / "backend" / "uploads" / "simulations"
+
+    def inject_template_agents(self, simulation_id: str, max_templates: int = 25) -> int:
+        """Inject template market-participant agents into an already-prepared simulation.
+
+        This adds universal archetypes (retail traders, whales, contrarians, etc.)
+        on top of the graph-derived organic agents, pushing agent count from ~10-20
+        to ~40-50 without requiring richer seed documents.
+
+        The method modifies three on-disk artefacts:
+          1. simulation_config.json  — appends agent_configs entries
+          2. reddit_profiles.json    — appends matching profile records
+          3. twitter_profiles.csv    — appends matching profile rows
+
+        Returns:
+            Number of template agents successfully injected (0 on failure).
+        """
+        try:
+            from polymarket_predictor.agents.templates import get_templates, get_stance_summary
+
+            sim_dir = self._SIM_DATA_DIR / simulation_id
+            config_path = sim_dir / "simulation_config.json"
+
+            if not config_path.exists():
+                logger.warning("Config not found at %s — skipping template injection", config_path)
+                return 0
+
+            config = json.loads(config_path.read_text(encoding="utf-8"))
+            existing_agents = config.get("agent_configs", [])
+            max_existing_id = max((a.get("agent_id", 0) for a in existing_agents), default=-1)
+
+            templates = get_templates(max_agents=max_templates)
+
+            # --- 1. Append agent configs ---
+            for i, tmpl in enumerate(templates):
+                agent_config = {
+                    "agent_id": max_existing_id + 1 + i,
+                    "entity_uuid": f"template_{tmpl['name']}",
+                    "entity_name": tmpl["name"],
+                    "entity_type": tmpl["type"],
+                    "activity_level": tmpl["activity_level"],
+                    "posts_per_hour": 2 if tmpl["activity_level"] > 0.5 else 1,
+                    "comments_per_hour": 4 if tmpl["activity_level"] > 0.5 else 2,
+                    "active_hours": list(range(8, 23)),
+                    "response_delay_min": 15,
+                    "response_delay_max": 60,
+                    "sentiment_bias": tmpl["sentiment_bias"],
+                    "stance": tmpl["stance"],
+                    "influence_weight": tmpl["influence_weight"],
+                }
+                existing_agents.append(agent_config)
+
+            config["agent_configs"] = existing_agents
+            config_path.write_text(json.dumps(config, indent=2, ensure_ascii=False), encoding="utf-8")
+
+            # --- 2. Append Reddit profiles ---
+            reddit_path = sim_dir / "reddit_profiles.json"
+            if reddit_path.exists():
+                try:
+                    reddit_profiles = json.loads(reddit_path.read_text(encoding="utf-8"))
+                except (json.JSONDecodeError, ValueError):
+                    reddit_profiles = []
+
+                next_uid = max((p.get("user_id", 0) for p in reddit_profiles), default=-1) + 1
+                for i, tmpl in enumerate(templates):
+                    reddit_profiles.append({
+                        "user_id": next_uid + i,
+                        "username": tmpl["name"],
+                        "name": tmpl["name"].replace("_", " ").title(),
+                        "bio": tmpl["bio"],
+                        "persona": tmpl["bio"],
+                        "karma": 100,
+                        "created_at": "2024-01-01T00:00:00",
+                        "profession": tmpl["type"],
+                    })
+                reddit_path.write_text(json.dumps(reddit_profiles, indent=2, ensure_ascii=False), encoding="utf-8")
+
+            # --- 3. Append Twitter profiles ---
+            twitter_path = sim_dir / "twitter_profiles.csv"
+            if twitter_path.exists():
+                try:
+                    with open(twitter_path, "r", encoding="utf-8") as f:
+                        reader = csv.DictReader(f)
+                        existing_rows = list(reader)
+                        fieldnames = reader.fieldnames or []
+                except Exception:
+                    existing_rows = []
+                    fieldnames = []
+
+                next_uid = max((int(r.get("user_id", 0)) for r in existing_rows), default=-1) + 1 if existing_rows else 0
+
+                for i, tmpl in enumerate(templates):
+                    row = {
+                        "user_id": str(next_uid + i),
+                        "username": tmpl["name"],
+                        "name": tmpl["name"].replace("_", " ").title(),
+                        "bio": tmpl["bio"],
+                        "persona": tmpl["bio"],
+                        "friend_count": "50",
+                        "follower_count": str(int(tmpl["influence_weight"] * 1000)),
+                        "statuses_count": "100",
+                        "created_at": "2024-01-01T00:00:00",
+                    }
+                    # Ensure all fieldnames present
+                    for fn in fieldnames:
+                        if fn not in row:
+                            row[fn] = ""
+                    for k in row:
+                        if k not in fieldnames:
+                            fieldnames.append(k)
+                    existing_rows.append(row)
+
+                if fieldnames and existing_rows:
+                    with open(twitter_path, "w", encoding="utf-8", newline="") as f:
+                        writer = csv.DictWriter(f, fieldnames=fieldnames)
+                        writer.writeheader()
+                        writer.writerows(existing_rows)
+
+            stance = get_stance_summary(templates)
+            logger.info(
+                "Injected %d template agents (bull=%d, bear=%d, neutral=%d). Total agents: %d",
+                len(templates), stance["bullish"], stance["bearish"], stance["neutral"],
+                len(existing_agents),
+            )
+            return len(templates)
+
+        except Exception as e:
+            logger.warning("Template agent injection failed: %s", e)
+            return 0
 
     # ------------------------------------------------------------------
     # Internal helpers

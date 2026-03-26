@@ -633,19 +633,19 @@ const activePresetName = computed(() => {
 
 // Client-side preset cost estimation (model pricing per 1M tokens)
 const presetModels = {
-  balanced:  { ontology: 'deepseek-chat', graph: 'deepseek-chat', profiles: 'gemini-2.0-flash', simulation: 'gpt-4o', report: 'gpt-4o' },
+  balanced:  { ontology: 'deepseek-chat', graph: 'deepseek-chat', profiles: 'gemini-2.5-flash-lite', simulation: 'gpt-4o', report: 'gpt-4o' },
   budget:    { ontology: 'deepseek-chat', graph: 'deepseek-chat', profiles: 'deepseek-chat', simulation: 'gpt-4o-mini', report: 'gpt-4o-mini' },
-  premium:   { ontology: 'deepseek-chat', graph: 'deepseek-chat', profiles: 'gemini-2.0-flash', simulation: 'claude-sonnet-4-20250514', report: 'gpt-4o' },
+  premium:   { ontology: 'deepseek-chat', graph: 'deepseek-chat', profiles: 'gemini-2.5-flash-lite', simulation: 'claude-sonnet-4-20250514', report: 'gpt-4o' },
   cheapest:  { ontology: 'deepseek-chat', graph: 'deepseek-chat', profiles: 'deepseek-chat', simulation: 'deepseek-chat', report: 'deepseek-chat' },
   best:      { ontology: 'gpt-4o', graph: 'gpt-4o', profiles: 'gpt-4o', simulation: 'gpt-4o', report: 'gpt-4o' },
-  gemini:    { ontology: 'gemini-2.5-flash', graph: 'gemini-2.5-flash', profiles: 'gemini-2.0-flash', simulation: 'gemini-2.5-flash', report: 'gemini-2.5-flash' },
+  gemini:    { ontology: 'gemini-2.5-flash', graph: 'gemini-2.5-flash', profiles: 'gemini-2.5-flash-lite', simulation: 'gemini-2.5-flash', report: 'gemini-2.5-flash' },
 }
 
 const modelPricing = {
   'gpt-4o':        { input: 2.50, output: 10.00 },
   'gpt-4o-mini':   { input: 0.15, output: 0.60 },
   'deepseek-chat': { input: 0.14, output: 0.28 },
-  'gemini-2.0-flash': { input: 0.075, output: 0.30 },
+  'gemini-2.5-flash-lite': { input: 0.075, output: 0.30 },
   'gemini-2.5-flash': { input: 0.15, output: 0.60 },
   'claude-sonnet-4-20250514': { input: 3.00, output: 15.00 },
 }
@@ -654,7 +654,7 @@ const modelDisplayName = {
   'gpt-4o': 'gpt-4o',
   'gpt-4o-mini': 'gpt-4o-mini',
   'deepseek-chat': 'deepseek-chat',
-  'gemini-2.0-flash': 'gemini-2.0-flash',
+  'gemini-2.5-flash-lite': 'gemini-2.5-flash-lite',
   'gemini-2.5-flash': 'gemini-2.5-flash',
   'claude-sonnet-4-20250514': 'claude-sonnet-4',
 }
