@@ -39,6 +39,9 @@ class DeepResearchResult:
     entity_articles: dict[str, list[Article]] = field(default_factory=dict)
     total_words: int = 0
     sources_count: int = 0
+    price_history: list = field(default_factory=list)
+    price_summary: str = ""
+    domain_data: str = ""
 
 
 class _TagStripper(HTMLParser):
@@ -157,12 +160,21 @@ class NewsAggregator:
             return ""
 
     async def search_articles_deep(
-        self, query: str, max_results: int = 10
+        self, query: str, max_results: int = 10, market_slug: str = ""
     ) -> DeepResearchResult:
         """Deep research combining news, general web, Wikipedia, and entity-specific searches.
 
         Returns a :class:`DeepResearchResult` targeting 8,000+ words across
         diverse source types.
+
+        Parameters
+        ----------
+        query:
+            The market question or search query.
+        max_results:
+            Max articles to return.
+        market_slug:
+            Optional Polymarket slug — used to fetch price history.
         """
         import asyncio
 
@@ -195,9 +207,48 @@ class NewsAggregator:
             except Exception as e:
                 logger.warning("Entity search failed for '%s': %s", entity, e)
 
+        # --- 5. Polymarket price history ---
+        if market_slug:
+            try:
+                history, summary = await self._fetch_price_history(market_slug)
+                result.price_history = history
+                result.price_summary = summary
+            except Exception as e:
+                logger.warning("Price history fetch failed: %s", e)
+
+        # --- 6. Category-specific data ---
+        category = self._detect_category(query)
+        domain_parts: list[str] = []
+
+        if category == "crypto":
+            # Extract crypto symbol from query
+            symbol = self._extract_crypto_symbol(query)
+            if symbol:
+                try:
+                    crypto_data = await self._fetch_crypto_data(symbol)
+                    if crypto_data:
+                        domain_parts.append(crypto_data)
+                except Exception as e:
+                    logger.warning("Crypto data fetch failed: %s", e)
+
+        elif category == "commodity":
+            commodity = self._extract_commodity(query)
+            ctx = self._get_commodity_context(commodity)
+            if ctx:
+                domain_parts.append(ctx)
+
+        elif category in ("politics", "geopolitics"):
+            ctx = self._get_politics_context(query)
+            if ctx:
+                domain_parts.append(ctx)
+
+        result.domain_data = "\n\n".join(domain_parts)
+
         # --- Compute totals ---
         all_texts = [a.text for a in result.articles]
         all_texts.append(result.wikipedia_context)
+        all_texts.append(result.price_summary)
+        all_texts.append(result.domain_data)
         for arts in result.entity_articles.values():
             all_texts.extend(a.text for a in arts)
 
@@ -207,6 +258,8 @@ class NewsAggregator:
             len(result.articles)
             + (1 if result.wikipedia_context else 0)
             + sum(len(arts) for arts in result.entity_articles.values())
+            + (1 if result.price_history else 0)
+            + (1 if result.domain_data else 0)
         )
 
         logger.info(
@@ -384,6 +437,262 @@ class NewsAggregator:
                 seen.add(e.lower())
                 unique.append(e)
         return unique[:5]
+
+    # ------------------------------------------------------------------
+    # Price history
+    # ------------------------------------------------------------------
+
+    async def _fetch_price_history(self, market_slug: str) -> tuple[list, str]:
+        """Fetch Polymarket price history and generate readable summary."""
+        try:
+            from polymarket_predictor.scrapers.polymarket import PolymarketScraper
+
+            async with PolymarketScraper() as scraper:
+                # First get the market to find the token ID
+                market = await scraper.get_market_by_slug(market_slug)
+                if not market:
+                    return [], ""
+
+                # Fetch the raw market data to get clobTokenIds
+                # Try markets endpoint which returns the raw data with token IDs
+                resp = await scraper._client.get(
+                    "/markets", params={"slug": market_slug}
+                )
+                if resp.status_code != 200:
+                    return [], ""
+
+                raw_markets = resp.json()
+                token_id = ""
+                for raw in raw_markets if isinstance(raw_markets, list) else [raw_markets]:
+                    # clobTokenIds is a JSON string like '["token1","token2"]'
+                    clob_ids = raw.get("clobTokenIds")
+                    if clob_ids:
+                        import json
+
+                        if isinstance(clob_ids, str):
+                            try:
+                                ids = json.loads(clob_ids)
+                                token_id = ids[0] if ids else ""
+                            except (json.JSONDecodeError, IndexError):
+                                token_id = clob_ids
+                        elif isinstance(clob_ids, list) and clob_ids:
+                            token_id = clob_ids[0]
+                    # Fallback: conditionId
+                    if not token_id:
+                        token_id = raw.get("conditionId", "")
+                    if token_id:
+                        break
+
+                if not token_id:
+                    return [], ""
+
+                # Use 1h interval for 7-day granularity
+                history = await scraper.get_price_history(token_id, interval="1h")
+
+                if not history:
+                    # Try daily interval as fallback
+                    history = await scraper.get_price_history(token_id, interval="1d")
+
+                if not history:
+                    return [], ""
+
+                # Generate summary
+                summary_parts = []
+                if len(history) >= 2:
+                    first_price = history[0].get("p", 0.5)
+                    last_price = history[-1].get("p", 0.5)
+                    change = last_price - first_price
+                    direction = "up" if change > 0 else "down"
+                    summary_parts.append(
+                        f"Price moved from {first_price:.1%} to {last_price:.1%} "
+                        f"({direction} {abs(change):.1%}) over the observation period."
+                    )
+
+                    # Find high/low
+                    prices = [h.get("p", 0.5) for h in history]
+                    high = max(prices)
+                    low = min(prices)
+                    summary_parts.append(f"Range: {low:.1%} to {high:.1%}.")
+
+                    # Recent trend (last 20% of data)
+                    recent_start = len(prices) - max(1, len(prices) // 5)
+                    recent_prices = prices[recent_start:]
+                    if len(recent_prices) >= 2:
+                        recent_change = recent_prices[-1] - recent_prices[0]
+                        if abs(recent_change) > 0.02:
+                            recent_dir = "bullish" if recent_change > 0 else "bearish"
+                            summary_parts.append(
+                                f"Recent trend is {recent_dir} ({recent_change:+.1%})."
+                            )
+
+                return history, " ".join(summary_parts)
+        except Exception as e:
+            logger.warning("Failed to fetch price history: %s", e)
+            return [], ""
+
+    # ------------------------------------------------------------------
+    # Category detection
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _detect_category(question: str) -> str:
+        """Detect market category from question text."""
+        q = question.lower()
+        if any(
+            kw in q
+            for kw in [
+                "bitcoin", "btc", "ethereum", "eth", "solana", "crypto",
+                "token", "doge", "bnb", "xrp",
+            ]
+        ):
+            return "crypto"
+        if any(
+            kw in q
+            for kw in ["crude oil", "oil price", "natural gas", "gold price", "commodity"]
+        ):
+            return "commodity"
+        if any(
+            kw in q
+            for kw in [
+                "election", "vote", "president", "congress", "parliament",
+                "party", "senator",
+            ]
+        ):
+            return "politics"
+        if any(
+            kw in q
+            for kw in ["ceasefire", "war", "military", "invasion", "sanctions", "diplomat"]
+        ):
+            return "geopolitics"
+        return "general"
+
+    # ------------------------------------------------------------------
+    # Category-specific data sources
+    # ------------------------------------------------------------------
+
+    async def _fetch_crypto_data(self, symbol: str) -> str:
+        """Fetch crypto price data from CoinGecko (free, no auth)."""
+        symbol_map = {
+            "btc": "bitcoin", "bitcoin": "bitcoin",
+            "eth": "ethereum", "ethereum": "ethereum",
+            "sol": "solana", "solana": "solana",
+            "xrp": "ripple",
+            "doge": "dogecoin", "dogecoin": "dogecoin",
+            "bnb": "binancecoin",
+        }
+
+        coin_id = symbol_map.get(symbol.lower(), symbol.lower())
+
+        try:
+            resp = await self._http.get(
+                "https://api.coingecko.com/api/v3/simple/price",
+                params={
+                    "ids": coin_id,
+                    "vs_currencies": "usd",
+                    "include_24hr_change": "true",
+                    "include_market_cap": "true",
+                    "include_24hr_vol": "true",
+                },
+            )
+            if resp.status_code == 200:
+                data = resp.json().get(coin_id, {})
+                price = data.get("usd", 0)
+                change_24h = data.get("usd_24h_change", 0)
+                market_cap = data.get("usd_market_cap", 0)
+                volume = data.get("usd_24h_vol", 0)
+
+                return (
+                    f"Current {symbol.upper()} Price Data:\n"
+                    f"  Price: ${price:,.2f}\n"
+                    f"  24h Change: {change_24h:+.2f}%\n"
+                    f"  Market Cap: ${market_cap:,.0f}\n"
+                    f"  24h Volume: ${volume:,.0f}\n"
+                )
+        except Exception as e:
+            logger.warning("CoinGecko fetch failed: %s", e)
+
+        return ""
+
+    @staticmethod
+    def _get_commodity_context(commodity: str) -> str:
+        """Static context for commodity markets."""
+        contexts = {
+            "crude_oil": (
+                "Key factors for crude oil prices:\n"
+                "- OPEC+ production decisions\n"
+                "- US Strategic Petroleum Reserve levels\n"
+                "- Global economic growth indicators (GDP, PMI)\n"
+                "- Geopolitical tensions in oil-producing regions\n"
+                "- US Dollar strength (inverse correlation)\n"
+                "- Seasonal demand patterns\n"
+                "- EIA weekly inventory reports\n"
+            ),
+            "natural_gas": (
+                "Key factors for natural gas prices:\n"
+                "- Weather forecasts (heating/cooling demand)\n"
+                "- Storage levels (EIA weekly report)\n"
+                "- LNG export demand\n"
+                "- Production levels and rig counts\n"
+                "- Pipeline capacity and constraints\n"
+            ),
+            "gold": (
+                "Key factors for gold prices:\n"
+                "- US Dollar strength (inverse correlation)\n"
+                "- Real interest rates (inverse correlation)\n"
+                "- Central bank buying/selling\n"
+                "- Geopolitical uncertainty (safe-haven demand)\n"
+                "- Inflation expectations\n"
+            ),
+        }
+        return contexts.get(commodity.lower(), "")
+
+    @staticmethod
+    def _get_politics_context(topic: str) -> str:
+        """Context frameworks for political prediction markets."""
+        return (
+            "Key factors for political predictions:\n"
+            "- Historical base rates for similar events\n"
+            "- Incumbent advantage/disadvantage patterns\n"
+            "- Economic indicators (typically strongest predictor)\n"
+            "- Recent polling data and trends\n"
+            "- Media narrative momentum\n"
+            "- Key institutional endorsements\n"
+            "- Voter turnout predictions\n"
+        )
+
+    # ------------------------------------------------------------------
+    # Symbol extraction helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _extract_crypto_symbol(query: str) -> str:
+        """Extract the primary crypto symbol from a query."""
+        q = query.lower()
+        # Check in order of specificity
+        symbols = [
+            ("bitcoin", "btc"), ("btc", "btc"),
+            ("ethereum", "eth"), ("eth", "eth"),
+            ("solana", "sol"), ("sol", "sol"),
+            ("dogecoin", "doge"), ("doge", "doge"),
+            ("xrp", "xrp"), ("ripple", "xrp"),
+            ("bnb", "bnb"), ("binance", "bnb"),
+        ]
+        for keyword, symbol in symbols:
+            if keyword in q:
+                return symbol
+        return ""
+
+    @staticmethod
+    def _extract_commodity(query: str) -> str:
+        """Extract commodity type from query."""
+        q = query.lower()
+        if "crude oil" in q or "oil price" in q:
+            return "crude_oil"
+        if "natural gas" in q:
+            return "natural_gas"
+        if "gold" in q:
+            return "gold"
+        return ""
 
     async def close(self):
         await self._http.aclose()

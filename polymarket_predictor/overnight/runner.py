@@ -212,7 +212,11 @@ class OvernightRunner:
                 gen = SeedGenerator()
                 try:
                     try:
-                        research = await news.search_articles_deep(market.question, max_results=10)
+                        research = await news.search_articles_deep(
+                            market.question,
+                            max_results=10,
+                            market_slug=market.slug,
+                        )
                         seed_path = gen.generate_deep_seed(market, research, variant="balanced")
                         push_log(f"  Deep research: {research.total_words} words from {research.sources_count} sources")
                     except Exception as e:

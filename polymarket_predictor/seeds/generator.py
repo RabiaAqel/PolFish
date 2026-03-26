@@ -193,6 +193,50 @@ class SeedGenerator:
         else:
             sections.append("## Recent News & Developments\nNo articles available.")
 
+        # --- Market Price History ---
+        if research.price_summary:
+            price_section = "## Market Price History\n"
+            price_section += research.price_summary + "\n"
+
+            # Add sentiment indicators derived from price history
+            if research.price_history and len(research.price_history) >= 2:
+                prices = [h.get("p", 0.5) for h in research.price_history]
+                last_price = prices[-1]
+                high = max(prices)
+                low = min(prices)
+
+                # Determine trend direction
+                recent_start = len(prices) - max(1, len(prices) // 5)
+                recent_prices = prices[recent_start:]
+                if len(recent_prices) >= 2:
+                    recent_change = recent_prices[-1] - recent_prices[0]
+                    if recent_change > 0.02:
+                        trend = "rising"
+                        momentum = "bullish"
+                    elif recent_change < -0.02:
+                        trend = "falling"
+                        momentum = "bearish"
+                    else:
+                        trend = "stable"
+                        momentum = "neutral"
+                else:
+                    trend = "stable"
+                    momentum = "neutral"
+
+                price_section += (
+                    f"\n### Market Sentiment Indicators\n"
+                    f"- Price trend: {trend}\n"
+                    f"- Price range (observation period): {low:.1%} to {high:.1%}\n"
+                    f"- Current price: {last_price:.1%}\n"
+                    f"- Recent momentum: {momentum}\n"
+                )
+
+            sections.append(price_section)
+
+        # --- Domain-Specific Data ---
+        if research.domain_data:
+            sections.append(f"## Domain-Specific Data\n{research.domain_data}")
+
         # --- Key Stakeholders & Entities ---
         if research.entity_articles:
             entity_parts = [
