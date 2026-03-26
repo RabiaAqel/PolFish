@@ -825,6 +825,92 @@ Get the current pipeline model configuration (API keys are redacted).
 
 ---
 
+## Predictions & Calibration
+
+### GET /api/polymarket/predictions
+
+Get all recent predictions with details.
+
+**Query parameters:**
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| `limit` | int | `50` | Maximum number of predictions to return. |
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "predictions": [
+      {
+        "market_id": "will-bitcoin-reach-100k-in-2025",
+        "question": "Will Bitcoin reach $100k in 2025?",
+        "predicted_prob": 0.72,
+        "market_prob": 0.65,
+        "edge": 0.07,
+        "signal": "BUY_YES",
+        "reliability": "high",
+        "timestamp": "2025-03-20T10:30:00"
+      }
+    ],
+    "count": 25
+  }
+}
+```
+
+---
+
+### GET /api/polymarket/calibration
+
+Get current calibration statistics including Brier score and calibration bins.
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "brier_score": 0.2134,
+    "calibration_error": 0.0456,
+    "total_predictions": 50,
+    "bins": [
+      {
+        "range": "0%-10%",
+        "predicted_mean": 0.08,
+        "actual_rate": 0.05,
+        "count": 4
+      }
+    ]
+  }
+}
+```
+
+---
+
+### GET /api/polymarket/strategy
+
+Get current strategy optimizer configuration.
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "min_edge_threshold": 0.03,
+    "max_bet_pct": 0.05,
+    "kelly_factor": 0.25,
+    "odds_range": [0.10, 0.90],
+    "category_weights": { ... },
+    "confidence_multipliers": { ... }
+  }
+}
+```
+
+---
+
 ## Signals & Stats
 
 ### GET /api/polymarket/signals
@@ -982,3 +1068,354 @@ Get recent loop log entries.
 | Param | Type | Default | Description |
 |-------|------|---------|-------------|
 | `limit` | int | `50` | Number of log entries. |
+
+---
+
+## Monte Carlo Simulation
+
+### POST /api/polymarket/monte-carlo/run
+
+Run a Monte Carlo portfolio simulation to evaluate viability across parameter combinations. Fetches resolved markets from Polymarket and simulates thousands of portfolio paths.
+
+**Request body:**
+
+```json
+{
+  "num_simulations": 1000,
+  "num_bets": 50,
+  "accuracies": [0.52, 0.55, 0.58, 0.60, 0.65],
+  "edge_thresholds": [0.03, 0.05, 0.08, 0.10],
+  "kelly_factors": [0.15, 0.25, 0.50]
+}
+```
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `num_simulations` | int | `1000` | Monte Carlo runs per parameter combination. |
+| `num_bets` | int | `50` | Number of bets per simulated portfolio path. |
+| `accuracies` | list[float] | (default sweep) | Accuracy levels to test. |
+| `edge_thresholds` | list[float] | (default sweep) | Edge thresholds to test. |
+| `kelly_factors` | list[float] | (default sweep) | Kelly fractions to test. |
+
+**Response (202 Accepted):**
+
+```json
+{
+  "success": true,
+  "task_id": "mc_abc123",
+  "status": "running"
+}
+```
+
+---
+
+### GET /api/polymarket/monte-carlo/run/{task_id}
+
+Check Monte Carlo simulation status. Returns progress during execution and full results when complete.
+
+**Response (running):**
+
+```json
+{
+  "success": true,
+  "task_id": "mc_abc123",
+  "status": "running",
+  "progress": {
+    "markets_loaded": 150,
+    "combo_index": 24,
+    "total_combos": 60,
+    "percent": 40.0,
+    "current": "accuracy=0.58, edge=0.05, kelly=0.25"
+  }
+}
+```
+
+**Response (completed):**
+
+```json
+{
+  "success": true,
+  "task_id": "mc_abc123",
+  "status": "completed",
+  "result": {
+    "sweep_results": [...],
+    "break_even": {
+      "accuracy": 0.56,
+      "edge_threshold": 0.05,
+      "kelly_factor": 0.25,
+      "probability_of_profit": 0.62
+    },
+    "best_config": { ... }
+  }
+}
+```
+
+---
+
+### GET /api/polymarket/monte-carlo/results
+
+Get the latest Monte Carlo results without needing a task ID. Results are cached in memory and persisted to `data/monte_carlo_results.json`.
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "sweep_results": [...],
+    "break_even": { ... },
+    "best_config": { ... }
+  }
+}
+```
+
+---
+
+## Overnight Runner
+
+### POST /api/polymarket/overnight/start
+
+Start a resilient overnight calibration run. Runs N deep predictions with crash recovery -- if the process is interrupted, it resumes from the last checkpoint.
+
+**Request body:**
+
+```json
+{
+  "total": 50,
+  "budget": 25.0
+}
+```
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `total` | int | `50` | Total number of deep predictions to run. |
+| `budget` | float | `25.0` | Maximum budget in USD. Stops when exceeded. |
+
+**Response (202 Accepted):**
+
+```json
+{
+  "success": true,
+  "status": "started",
+  "total": 50,
+  "budget": 25.0
+}
+```
+
+---
+
+### POST /api/polymarket/overnight/stop
+
+Gracefully stop the overnight run after the current prediction completes. Does not abort mid-prediction.
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "status": "stop_requested"
+}
+```
+
+---
+
+### GET /api/polymarket/overnight/status
+
+Get the current state of the overnight run, including progress, costs, and recent results.
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "run_id": "overnight_20250325_220000",
+    "mode": "overnight",
+    "status": "running",
+    "current_round": 12,
+    "completed": 11,
+    "failed": 1,
+    "skipped": 0,
+    "total_target": 50,
+    "total_cost_usd": 4.62,
+    "max_budget_usd": 25.0,
+    "current_market": "will-bitcoin-reach-100k",
+    "current_phase": "predicting",
+    "started_at": "2025-03-25T22:00:00+00:00",
+    "last_checkpoint_at": "2025-03-25T23:15:00+00:00",
+    "results_count": 12,
+    "recent_results": [...],
+    "recent_errors": [...],
+    "strategy_version": 3
+  }
+}
+```
+
+---
+
+### GET /api/polymarket/overnight/results
+
+Get all overnight prediction results with summary statistics.
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "results": [...],
+    "summary": {
+      "completed": 45,
+      "failed": 3,
+      "total_cost_usd": 18.90,
+      "avg_cost": 0.42,
+      "predictions_with_edge": 28,
+      "bets_placed": 22
+    }
+  }
+}
+```
+
+---
+
+## Rolling Loop
+
+### POST /api/polymarket/rolling/start
+
+Start a continuous rolling trading loop that runs prediction rounds at a configurable interval. Unlike the overnight runner (which runs a fixed number of predictions), the rolling loop runs indefinitely until stopped.
+
+**Request body:**
+
+```json
+{
+  "round_interval": 3600,
+  "deep_per_round": 3,
+  "budget_per_round": 12.0,
+  "max_budget": 100.0
+}
+```
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `round_interval` | int | `3600` | Seconds between rounds. |
+| `deep_per_round` | int | `3` | Deep predictions per round. |
+| `budget_per_round` | float | `12.0` | Budget cap per round in USD. |
+| `max_budget` | float | `100.0` | Total budget cap across all rounds. |
+
+**Response (202 Accepted):**
+
+```json
+{
+  "success": true,
+  "status": "started"
+}
+```
+
+---
+
+### POST /api/polymarket/rolling/stop
+
+Gracefully stop the rolling loop after the current round completes.
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "status": "stop_requested"
+}
+```
+
+---
+
+## Method Tracker
+
+### GET /api/polymarket/methods/performance
+
+Get aggregated performance comparison between LLM predictions, quantitative predictions, and the combined blend.
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "llm": {
+      "method": "llm",
+      "total_predictions": 45,
+      "resolved": 30,
+      "correct": 18,
+      "accuracy": 0.60,
+      "avg_brier": 0.2134
+    },
+    "quant": {
+      "method": "quant",
+      "total_predictions": 45,
+      "resolved": 30,
+      "correct": 20,
+      "accuracy": 0.667,
+      "avg_brier": 0.1945
+    },
+    "combined": {
+      "method": "combined",
+      "total_predictions": 45,
+      "resolved": 30,
+      "correct": 21,
+      "accuracy": 0.70,
+      "avg_brier": 0.1823
+    }
+  }
+}
+```
+
+---
+
+### GET /api/polymarket/methods/comparisons
+
+Get recent individual prediction comparisons showing both methods side-by-side.
+
+**Query parameters:**
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| `limit` | int | `20` | Number of recent comparisons to return. |
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "market_id": "will-bitcoin-reach-100k",
+      "question": "Will Bitcoin reach $100k in 2025?",
+      "llm_prediction": 0.72,
+      "quant_prediction": 0.65,
+      "combined_prediction": 0.68,
+      "market_odds": 0.60,
+      "resolved": true,
+      "outcome_yes": true,
+      "llm_correct": true,
+      "quant_correct": true
+    }
+  ]
+}
+```
+
+---
+
+### GET /api/polymarket/methods/weights
+
+Get the current blending weights used to combine LLM and quantitative predictions.
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "llm_weight": 0.5,
+    "quant_weight": 0.5
+  }
+}
+```

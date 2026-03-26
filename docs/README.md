@@ -77,6 +77,19 @@ curl -X POST http://localhost:5001/api/polymarket/predict/deep \
 
 ---
 
+## Key Features
+
+- **Multi-agent simulation** -- MiroFish knowledge graph + agent debates produce diverse viewpoints
+- **Dual prediction extraction** -- LLM-based (prose report) and quantitative (raw simulation data) predictions, auto-blended by the MethodTracker
+- **Monte Carlo viability analysis** -- Parameter sweeps across accuracy, edge thresholds, and Kelly fractions to find break-even and optimal configurations
+- **Overnight runner** -- Crash-safe batch predictions with atomic checkpoints and auto-resume
+- **Rolling trading loop** -- Continuous prediction rounds at configurable intervals with budget caps
+- **Self-improving method weights** -- MethodTracker auto-adjusts LLM vs quantitative blend based on resolved market outcomes
+- **Paper trading** -- Full portfolio simulation with Kelly-optimal sizing, P&L tracking, and auto-resolution
+- **Autopilot** -- End-to-end autonomous cycles: scan, predict, bet, resolve, optimize
+- **6 pipeline presets** -- From free-tier Gemini ($0.02/prediction) to premium Claude ($0.54/prediction)
+- **Decision ledger** -- Append-only JSONL audit log of every system decision
+
 ## How It Works (Summary)
 
 1. **Scan** -- MarketScanner fetches active markets from Polymarket, filters by expiry, volume, and odds uncertainty, then ranks by "niche score" (markets where the crowd is less likely to be efficient).
@@ -85,13 +98,17 @@ curl -X POST http://localhost:5001/api/polymarket/predict/deep \
 
 3. **Simulate** -- The seed is uploaded to MiroFish, which builds a knowledge graph, creates AI agent profiles, and runs a multi-round debate simulation where agents argue different sides.
 
-4. **Extract** -- PredictionParser pulls a probability estimate from the simulation report using regex patterns or an LLM fallback.
+4. **Extract** -- Two prediction methods run in parallel:
+   - **LLM extraction:** PredictionParser reads the prose report and extracts a probability using regex or LLM fallback.
+   - **Quantitative extraction:** SimulationAnalyzer reads the raw SQLite simulation data -- agent sentiment counts, engagement-weighted consensus, temporal momentum, and expert-weighted votes -- to compute a data-driven probability.
 
-5. **Trade** -- BetSizer uses the Kelly criterion to determine position size. PaperPortfolio records the bet and tracks P&L.
+5. **Blend** -- MethodTracker combines both predictions using auto-adjusting weights. As markets resolve, the method with better Brier scores gets more weight.
 
-6. **Resolve** -- MarketResolver periodically checks Polymarket for settled markets and updates the portfolio.
+6. **Trade** -- BetSizer uses the Kelly criterion to determine position size. PaperPortfolio records the bet and tracks P&L.
 
-7. **Optimize** -- StrategyOptimizer and Calibrator analyze historical accuracy to auto-tune edge thresholds, category weights, and bet sizing.
+7. **Resolve** -- MarketResolver periodically checks Polymarket for settled markets and updates the portfolio.
+
+8. **Optimize** -- StrategyOptimizer and Calibrator analyze historical accuracy to auto-tune edge thresholds, category weights, and bet sizing.
 
 ---
 
@@ -108,12 +125,20 @@ mirofish/
     cost_calculator.py         # Cost estimation engine
     cost_tracker.py            # Runtime token usage tracking
     cli.py                     # CLI entry point
-    dashboard/api.py           # Flask blueprint (all REST endpoints)
+    dashboard/api.py           # Flask blueprint (all 48 REST endpoints)
     scrapers/                  # Polymarket + news data fetching
     seeds/                     # Seed document generation
     scanner/                   # Market discovery and ranking
     orchestrator/              # MiroFish pipeline driver
     parser/                    # Prediction extraction from reports
+    analyzer/                  # Quantitative analysis + method tracking
+      simulation_analyzer.py   # Prediction from raw SQLite simulation data
+      method_tracker.py        # LLM vs quant comparison, auto-blend weights
+    monte_carlo/               # Portfolio viability simulation
+      simulator.py             # Parameter sweeps, break-even analysis
+    overnight/                 # Resilient long-running operations
+      runner.py                # OvernightRunner + RollingLoop
+      state.py                 # Crash-safe atomic state checkpoints
     paper_trader/              # Portfolio + Kelly bet sizing
     resolver/                  # Market resolution + calibration updates
     calibrator/                # Brier score + calibration curves

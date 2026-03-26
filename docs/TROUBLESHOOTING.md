@@ -331,6 +331,148 @@ Then restart the backend.
 
 ---
 
+### Zep episode limit error (403 Forbidden)
+
+**Symptom:** `403 Forbidden` error from Zep API during knowledge graph building or simulation, with a message about episode limits.
+
+**Cause:** The Zep free tier has limits on the number of episodes (knowledge graph sessions) you can create. Each simulation creates a new episode, and if you run many predictions in a short period, you may hit this limit.
+
+**Fixes:**
+
+1. **Wait and retry:** Episode limits typically reset over time. Wait a few hours and try again.
+
+2. **Delete old episodes:** If you have accumulated many test episodes, consider cleaning up unused ones through the Zep dashboard at [app.getzep.com](https://app.getzep.com).
+
+3. **Upgrade your Zep plan:** If you are running production workloads (overnight runs, autopilot cycles), consider upgrading to a paid plan with higher limits.
+
+4. **Check your usage:** Log into the Zep dashboard and check current episode count against your plan limits.
+
+---
+
+### Simulation prepare to start 400 error (status not ready)
+
+**Symptom:** HTTP 400 error when the pipeline tries to start a simulation, with a message like "simulation status is not ready" or "cannot start simulation in current state."
+
+**Cause:** The MiroFish simulation has a lifecycle: `created` -> `prepared` -> `running` -> `completed`. The `prepare` step generates agent profiles, and the `start` step begins the actual simulation. If `prepare` has not finished, or if the simulation is already running, the backend rejects the start request.
+
+**Fixes:**
+
+1. **Check simulation status:** The pipeline polls for readiness, but if the profiles stage takes too long or fails silently, the simulation may never reach the `prepared` state.
+
+2. **Increase polling timeout:** The pipeline waits for preparation to complete. If your model is slow (e.g., Claude for profiles), this can take several minutes. Check logs for timeout messages.
+
+3. **Restart the backend:** If a simulation gets stuck in a transitional state, restarting the Flask backend clears the in-memory simulation state.
+
+---
+
+### Deep prediction timeout (report takes 11+ minutes)
+
+**Symptom:** Deep prediction task stays in "generating_report" state for 10+ minutes with no progress.
+
+**Cause:** With the default 40 rounds and multiple agents, the report stage must synthesize a large volume of simulation data. Premium models (Claude Sonnet, GPT-4o) handle this well, but cheaper models may struggle with the context window or produce incomplete reports that trigger retries.
+
+**Fixes:**
+
+1. **Monitor the SSE log stream:** Check which phase is stuck:
+   ```bash
+   curl -N http://localhost:5001/api/polymarket/logs/stream
+   ```
+
+2. **Reduce simulation rounds:** Set `MAX_SIMULATION_ROUNDS=20` for faster iterations during development.
+
+3. **Use a faster report model:** Switch the report stage to a faster model:
+   ```bash
+   PIPELINE_PRESET=custom
+   REPORT_MODEL=gemini-2.5-flash
+   ```
+
+4. **Check for MiroFish backend overload:** If multiple deep predictions are running simultaneously, the backend may be processing requests sequentially. Limit concurrent deep predictions.
+
+---
+
+### Prediction always 65% (LLM default bias)
+
+**Symptom:** Every prediction returns a probability near 60-65%, regardless of the market or simulation dynamics.
+
+**Cause:** When the prediction is extracted from prose reports only (without quantitative analysis), LLMs tend to default to a "cautiously uncertain" probability around 60-65%. This is the LLM's "I don't really know" prior. The prose report uses hedging language ("mixed sentiment", "cautious optimism") that the extraction LLM interprets as moderate probability.
+
+**Fixes:**
+
+1. **Enable quantitative analysis:** The `SimulationAnalyzer` extracts predictions directly from simulation data, bypassing the prose compression bottleneck. The `MethodTracker` then blends both methods. This is now the default behavior.
+
+2. **Check method weights:** If quantitative weight is low, the blend is dominated by the LLM:
+   ```bash
+   curl http://localhost:5001/api/polymarket/methods/weights
+   ```
+
+3. **Run more agents:** With 3 agents, there is not enough data for meaningful quantitative analysis. Increase to 15+ agents for reliable sentiment counting.
+
+4. **Increase rounds:** At 15 rounds, agents may not have enough time to diverge. The default of 40 rounds allows genuine opinion formation.
+
+---
+
+### All bets YES (optimism bias)
+
+**Symptom:** The system consistently generates BUY_YES signals and never (or rarely) bets NO.
+
+**Cause:** Early versions of the seed generator and agent prompts had a subtle optimism bias. The seed document framed questions in a way that made YES outcomes sound more plausible, and agents tended to converge on the optimistic interpretation.
+
+**Fixes:**
+
+1. **Use contrarian variants:** Run deep predictions with multiple variants including `contrarian` and `bearish`:
+   ```bash
+   curl -X POST http://localhost:5001/api/polymarket/predict/deep \
+     -d '{"slug": "your-market", "variants": 3}'
+   ```
+   The ensemble averaging across balanced, bullish, and bearish variants corrects for directional bias.
+
+2. **Check seed balance:** The seed generator now includes explicit contrarian framing for non-balanced variants. Verify your seed templates are up to date.
+
+3. **Review strategy parameters:** Check that `odds_range` is not too narrow:
+   ```bash
+   curl http://localhost:5001/api/polymarket/strategy
+   ```
+
+---
+
+### Portfolio reset warning (data loss)
+
+**Symptom:** Wanting to reset the portfolio but concerned about losing data.
+
+**What reset clears:**
+- All open and resolved paper trading positions (`portfolio.jsonl`)
+
+**What reset does NOT clear:**
+- Decision ledger (`decision_ledger.jsonl`)
+- Prediction history (`predictions.jsonl`, `resolutions.jsonl`)
+- Strategy optimizer config (`strategy.json`)
+- Backtest data (`data/backtest/`)
+- Overnight run state (`overnight_state.json`)
+- Monte Carlo results (`monte_carlo_results.json`)
+- Method comparisons (`method_comparisons.jsonl`)
+
+**To do a full system reset**, see the [existing section](#portfolio-reset-warning) for the file deletion commands.
+
+---
+
+### DuckDuckGo rate limiting
+
+**Symptom:** News article search returns 0 articles consistently, or throws connection errors. Log messages show "no articles found" for multiple consecutive predictions.
+
+**Cause:** DuckDuckGo does not require an API key but does rate-limit automated queries. Running many predictions in rapid succession (e.g., during an overnight run of 50 predictions) can trigger rate limiting.
+
+**Fixes:**
+
+1. **Add delays:** The overnight runner includes a configurable delay between predictions. Increasing the delay reduces the chance of rate limiting.
+
+2. **Retry after backoff:** The news aggregator implements automatic retry with exponential backoff. If the first attempt fails, it waits and retries up to 3 times.
+
+3. **Accept partial results:** Predictions without news context are still valid (they rely on market data and simulation dynamics). The system proceeds with whatever articles it can find.
+
+4. **Alternative news sources:** The `quick_research` config flag in autopilot controls whether quick predictions fetch news. Set to `false` to skip news during scanning phases and only fetch news for deep predictions.
+
+---
+
 ### Seed generation fails with no articles
 
 **Symptom:** Seed document is generated but contains "No articles available" section.

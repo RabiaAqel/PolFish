@@ -61,7 +61,8 @@ These override the preset for individual pipeline stages. Only needed when using
 
 | Variable | Type | Default | Description |
 |----------|------|---------|-------------|
-| `PREDICTOR_MAX_ROUNDS` | int | `15` | Maximum simulation rounds per prediction. |
+| `MAX_SIMULATION_ROUNDS` | int | `40` | Maximum simulation rounds per prediction. Takes precedence over `PREDICTOR_MAX_ROUNDS`. |
+| `PREDICTOR_MAX_ROUNDS` | int | `40` | Alias for `MAX_SIMULATION_ROUNDS`. Used as fallback if `MAX_SIMULATION_ROUNDS` is not set. |
 | `PREDICTOR_VARIANTS` | int | `3` | Number of seed variants for ensemble predictions. |
 | `PREDICTOR_MIN_EDGE` | float | `0.10` | Minimum edge (as decimal) to generate a signal. |
 | `PREDICTOR_MIN_VOLUME` | float | `10000` | Minimum market volume (USD) for signal generation. |
@@ -301,3 +302,29 @@ ZEP_API_KEY=z_...
 ```
 
 Cost: ~$0.54/prediction. Claude Sonnet for simulation reasoning, GPT-4o for reports.
+
+---
+
+## .env.example Summary
+
+A minimal `.env` file for the balanced preset:
+
+```bash
+# Core LLM
+LLM_API_KEY=sk-proj-...
+LLM_MODEL_NAME=gpt-4o
+
+# Providers
+DEEPSEEK_API_KEY=sk-...
+GEMINI_API_KEY=AIza...
+ZEP_API_KEY=z_...
+
+# Pipeline
+PIPELINE_PRESET=balanced
+MAX_SIMULATION_ROUNDS=40
+
+# Optional providers
+# ANTHROPIC_API_KEY=sk-ant-...
+# MISTRAL_API_KEY=...
+# GROQ_API_KEY=gsk_...
+```

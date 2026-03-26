@@ -67,6 +67,31 @@
   |  | BET_PLACED, BET_SKIPPED,  |   | configurations and track ROI.   |  |
   |  | DEEP_CONFIRMED, etc.      |   |                                  |  |
   |  +---------------------------+   +----------------------------------+  |
+  |                                                                        |
+  |  +---------------------------+   +----------------------------------+  |
+  |  | SimulationAnalyzer        |   | MethodTracker                    |  |
+  |  | (analyzer/simulation_     |   | (analyzer/method_tracker.py)     |  |
+  |  |  analyzer.py)             |   |                                  |  |
+  |  |                           |   | Self-improving prediction        |  |
+  |  | Quantitative prediction   |   | method comparison:               |  |
+  |  | from raw SQLite data:     |   | - Track LLM vs quant accuracy   |  |
+  |  | - Agent sentiment counts  |   | - Auto-adjust blend weights     |  |
+  |  | - Engagement weighting    |   | - Brier score per method        |  |
+  |  | - Temporal momentum       |   | - Store every comparison        |  |
+  |  | - Expert-weighted votes   |   |                                  |  |
+  |  +---------------------------+   +----------------------------------+  |
+  |                                                                        |
+  |  +---------------------------+   +----------------------------------+  |
+  |  | MonteCarloSimulator       |   | OvernightRunner + RollingLoop    |  |
+  |  | (monte_carlo/simulator.py)|   | (overnight/runner.py)            |  |
+  |  |                           |   |                                  |  |
+  |  | Portfolio viability study: |   | Resilient long-running ops:     |  |
+  |  | - Parameter sweeps over   |   | - Crash recovery via checkpoints|  |
+  |  |   accuracy, edge, kelly   |   | - Atomic state writes           |  |
+  |  | - Break-even detection    |   | - Budget tracking per round     |  |
+  |  | - 1000+ simulation paths  |   | - Graceful stop support         |  |
+  |  | - Uses real market data   |   | - Auto-resume on restart        |  |
+  |  +---------------------------+   +----------------------------------+  |
   +------------------------------------------------------------------------+
            |
            v
@@ -163,6 +188,33 @@ Ensemble average across variants
        |
        v
 Signal: BUY_YES / BUY_NO / SKIP (based on edge vs market odds)
+```
+
+### Prediction Verdict Flow (LLM + Quantitative Blend)
+
+```
+Simulation completes
+       |
+       +---> LLM Prediction (report-based)
+       |       PredictionParser reads prose report → probability
+       |
+       +---> Quantitative Prediction (data-based)
+       |       SimulationAnalyzer reads raw SQLite data:
+       |         - Agent sentiment counts (YES/NO/NEUTRAL)
+       |         - Engagement-weighted consensus
+       |         - Temporal momentum (early vs late rounds)
+       |         - Expert-weighted votes
+       |
+       v
+MethodTracker blends both predictions:
+  combined = (llm_weight * llm_prob) + (quant_weight * quant_prob)
+       |
+       v
+Weights auto-adjust as markets resolve:
+  Method with better Brier score gets more weight over time
+       |
+       v
+Final prediction → edge calculation → bet decision
 ```
 
 ### Autopilot Cycle Flow
@@ -270,6 +322,20 @@ loop/
   runner.py      -----> TradingLoop
     |
     v
+analyzer/
+  simulation_analyzer.py -> SimulationAnalyzer (quantitative prediction from SQLite)
+  method_tracker.py ------> MethodTracker (LLM vs quant comparison, auto-blend)
+    |
+    v
+monte_carlo/
+  simulator.py   -----> MonteCarloSimulator, ParameterSweepResult
+    |
+    v
+overnight/
+  runner.py      -----> OvernightRunner, RollingLoop (crash-safe long runs)
+  state.py       -----> StateManager, RunState (atomic checkpoints)
+    |
+    v
 dashboard/
   api.py         -----> Flask Blueprint (all REST endpoints)
     |
@@ -308,6 +374,10 @@ All persistent data lives in `polymarket_predictor/data/`:
 | `strategy.json` | Current strategy optimizer parameters |
 | `autopilot_config.json` | Autopilot tuning parameters |
 | `backtest/` | Isolated backtest data directory |
+| `overnight_state.json` | Checkpoint state for overnight/rolling runs |
+| `monte_carlo_results.json` | Cached Monte Carlo simulation results |
+| `method_comparisons.jsonl` | Per-prediction LLM vs quant comparison log |
+| `method_performance.json` | Aggregated method accuracy and blend weights |
 
 ## Frontend Architecture
 

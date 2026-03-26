@@ -4,7 +4,7 @@ This guide covers token usage, model pricing, preset comparisons, and strategies
 
 ## Token Usage Per Pipeline Stage
 
-The following estimates are based on observed MiroFish runs with default settings (15 rounds, 10 agents):
+The following estimates are based on observed MiroFish runs with default settings (40 rounds, 10 agents). Earlier versions defaulted to 15 rounds; the current default of 40 rounds was chosen to allow agent opinions to converge (see [Prediction Pipeline Research](PREDICTION_PIPELINE_RESEARCH.md)).
 
 | Stage | Input Tokens | Output Tokens | Total Tokens | Purpose |
 |-------|-------------|---------------|--------------|---------|
@@ -49,7 +49,7 @@ All prices are per 1 million tokens (USD):
 
 ## Preset Cost Comparison
 
-### Cost Per Single Deep Prediction (15 rounds, 10 agents)
+### Cost Per Single Deep Prediction (40 rounds, 10 agents)
 
 | Preset | Cost | Breakdown |
 |--------|------|-----------|
@@ -71,18 +71,49 @@ All prices are per 1 million tokens (USD):
 | **premium** | $0.54 | $5.40 | $27.00 | $54.00 |
 | **best** | $0.58 | $5.80 | $29.00 | $58.00 |
 
+### High Agent Count Cost Table (50 agents x 40 rounds)
+
+Running with more agents increases information density at the cost of more simulation tokens. The `cheapest` and `gemini` presets make high agent counts affordable:
+
+| Preset | 10 agents | 30 agents | 50 agents | Notes |
+|--------|-----------|-----------|-----------|-------|
+| **cheapest** | $0.02 | $0.06 | $0.10 | All DeepSeek -- scales cheaply |
+| **budget** | $0.03 | $0.08 | $0.14 | GPT-4o-mini sim stays cheap |
+| **gemini** | $0.03 | $0.08 | $0.14 | Gemini free tier may cap daily |
+| **balanced** | $0.42 | $1.10 | $1.80 | GPT-4o sim dominates cost |
+| **premium** | $0.54 | $1.40 | $2.30 | Claude sim is most expensive |
+| **best** | $0.58 | $1.50 | $2.50 | All GPT-4o |
+
+**DeepSeek for simulation insight:** Running 50 agents on DeepSeek ($0.10/prediction) produces more total information than 10 agents on GPT-4o ($0.42/prediction) at a fraction of the cost. The quality-per-dollar of more agents on a cheap model can exceed fewer agents on a premium model, because crowd wisdom depends more on agent count and diversity than on individual agent intelligence.
+
+---
+
 ### Balanced vs All GPT-4o Savings
 
 The balanced preset achieves ~27% savings over all-GPT-4o by using cheap models for the preprocessing stages (ontology, graph, profiles) where quality difference is minimal.
 
 ```
-Balanced:  ontology($0.001) + graph($0.002) + profiles($0.002) + sim($0.300) + report($0.118) = $0.42
-All GPT4o: ontology($0.028) + graph($0.060) + profiles($0.073) + sim($0.300) + report($0.118) = $0.58
+Balanced preset — per-stage cost breakdown (40 rounds, 10 agents):
 
-Savings: $0.16/prediction (27.3%)
-At 50 predictions: $8.00 saved
-At 100 predictions: $16.00 saved
+Stage         Model              Input Tokens  Output Tokens  Cost
+------------- ------------------ ------------- -------------- ------
+Ontology      deepseek-chat       3,000         2,000         $0.001
+Graph         deepseek-chat       8,000         4,000         $0.002
+Profiles      gemini-2.0-flash    5,000         6,000         $0.002
+Simulation    gpt-4o             107,000        53,000         $0.800  (40 rounds)
+Report        gpt-4o              15,000         8,000         $0.118
+------------- ------------------ ------------- -------------- ------
+TOTAL                            138,000        73,000         $0.923
+
+All GPT-4o:
+TOTAL                            138,000        73,000         $1.103
+
+Savings with balanced: $0.18/prediction (16.3%)
+At 50 predictions: $9.00 saved
+At 100 predictions: $18.00 saved
 ```
+
+Note: With the original 15-round default, balanced cost was ~$0.42 and all-GPT-4o was ~$0.58. At 40 rounds, the simulation stage cost roughly doubles, but preprocessing savings remain the same.
 
 ---
 
