@@ -325,7 +325,15 @@ class SimulationConfigGenerator:
             all_agent_configs.extend(batch_configs)
         
         reasoning_parts.append(f"Agent配置: 成功生成 {len(all_agent_configs)} 个")
-        
+
+        # ========== 应用多样化立场和特征 ==========
+        logger.info("为Agent分配多样化立场、影响力和活跃度...")
+        all_agent_configs = self._assign_agent_diversity(all_agent_configs)
+        stance_counts = {}
+        for ac in all_agent_configs:
+            stance_counts[ac.stance] = stance_counts.get(ac.stance, 0) + 1
+        reasoning_parts.append(f"立场多样化: {stance_counts}")
+
         # ========== 为初始帖子分配发布者 Agent ==========
         logger.info("为初始帖子分配合适的发布者 Agent...")
         event_config = self._assign_initial_post_agents(event_config, all_agent_configs)
@@ -901,6 +909,74 @@ class SimulationConfigGenerator:
         
         return configs
     
+    def _assign_agent_diversity(
+        self, agent_configs: List[AgentActivityConfig]
+    ) -> List[AgentActivityConfig]:
+        """
+        Apply diverse stances, influence weights, sentiment biases, and activity
+        levels to agent configs so simulations produce genuine debate instead of
+        echo-chamber agreement.
+
+        Distribution (deterministic, based on agent index):
+          Stance:  ~30% bullish, ~30% bearish, ~40% neutral
+          Influence: 20% high (2.0-3.0), 30% medium (1.0-2.0), 50% low (0.5-1.0)
+          Activity:  some high, most moderate, some low ("lurkers")
+        """
+        n = len(agent_configs)
+        if n == 0:
+            return agent_configs
+
+        for i, agent in enumerate(agent_configs):
+            position = i / max(n, 1)
+
+            # --- Stance & sentiment_bias ---
+            if position < 0.30:
+                agent.stance = "bullish"
+                # sentiment_bias: 0.3 -> 0.6 across the bullish segment
+                agent.sentiment_bias = round(0.3 + (position / 0.30) * 0.3, 3)
+            elif position < 0.60:
+                agent.stance = "bearish"
+                adj_pos = (position - 0.30) / 0.30
+                # sentiment_bias: -0.6 -> -0.3 across the bearish segment
+                agent.sentiment_bias = round(-0.6 + adj_pos * 0.3, 3)
+            else:
+                agent.stance = "neutral"
+                # sentiment_bias: -0.1 -> 0.1 across the neutral segment
+                agent.sentiment_bias = round(
+                    (position - 0.60) / 0.40 * 0.2 - 0.1, 3
+                )
+
+            # --- Influence weight (sine-wave distribution) ---
+            influence_phase = (i * math.pi) / max(n - 1, 1)
+            agent.influence_weight = round(
+                0.5 + 2.5 * abs(math.sin(influence_phase)), 2
+            )
+
+            # --- Activity level & posting rates ---
+            if i % 5 == 0:
+                # High activity — "influencers" who post a lot
+                agent.activity_level = round(0.7 + (i % 3) * 0.1, 2)
+                agent.posts_per_hour = 4.0
+                agent.comments_per_hour = 8.0
+            elif i % 3 == 0:
+                # Low activity — "lurkers" who mostly react
+                agent.activity_level = round(0.1 + (i % 4) * 0.05, 2)
+                agent.posts_per_hour = 1.0
+                agent.comments_per_hour = 2.0
+            else:
+                # Medium activity — regular participants
+                agent.activity_level = round(0.3 + (i % 4) * 0.1, 2)
+                agent.posts_per_hour = 2.0
+                agent.comments_per_hour = 5.0
+
+        logger.info(
+            f"Agent diversity applied to {n} agents: "
+            f"bullish={sum(1 for a in agent_configs if a.stance == 'bullish')}, "
+            f"bearish={sum(1 for a in agent_configs if a.stance == 'bearish')}, "
+            f"neutral={sum(1 for a in agent_configs if a.stance == 'neutral')}"
+        )
+        return agent_configs
+
     def _generate_agent_config_by_rule(self, entity: EntityNode) -> Dict[str, Any]:
         """基于规则生成单个Agent配置（中国人作息）"""
         entity_type = (entity.get_entity_type() or "Unknown").lower()

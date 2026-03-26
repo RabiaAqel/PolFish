@@ -1483,3 +1483,38 @@ def monte_carlo_results():
         return jsonify({"success": True, "data": _monte_carlo_results}), 200
 
     return jsonify({"success": True, "data": None, "message": "No Monte Carlo results yet"}), 200
+
+
+# ---------------------------------------------------------------------------
+# Method Comparison endpoints
+# ---------------------------------------------------------------------------
+
+@dashboard_bp.route("/methods/performance", methods=["GET"])
+def methods_performance():
+    """Get prediction method comparison performance."""
+    from polymarket_predictor.analyzer.method_tracker import MethodTracker
+    tracker = MethodTracker()
+    return jsonify({"success": True, "data": tracker.get_performance()})
+
+
+@dashboard_bp.route("/methods/comparisons", methods=["GET"])
+def methods_comparisons():
+    """Get recent method comparisons."""
+    from polymarket_predictor.analyzer.method_tracker import MethodTracker
+    limit = int(request.args.get("limit", 20))
+    tracker = MethodTracker()
+    return jsonify({"success": True, "data": tracker.get_recent_comparisons(limit)})
+
+
+@dashboard_bp.route("/methods/weights", methods=["GET"])
+def methods_weights():
+    """Get current blending weights."""
+    from polymarket_predictor.analyzer.method_tracker import MethodTracker
+    tracker = MethodTracker()
+    return jsonify({
+        "success": True,
+        "data": {
+            "llm_weight": tracker.llm_weight,
+            "quant_weight": tracker.quant_weight,
+        },
+    })

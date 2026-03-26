@@ -436,6 +436,18 @@ class SimulationManager:
             
             state.config_generated = True
             state.config_reasoning = sim_params.generation_reasoning
+
+            # ========== Post-process: enrich profiles with stance from sim config ==========
+            try:
+                reddit_profile_path = os.path.join(sim_dir, "reddit_profiles.json") if state.enable_reddit else None
+                OasisProfileGenerator.enrich_profiles_with_stance(
+                    profiles=profiles,
+                    agent_configs=sim_params.agent_configs,
+                    profile_path=reddit_profile_path,
+                )
+                logger.info("Profiles enriched with stance-aware bios")
+            except Exception as e:
+                logger.warning(f"Stance enrichment failed (non-fatal): {e}")
             
             if progress_callback:
                 progress_callback(

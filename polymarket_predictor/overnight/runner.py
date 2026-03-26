@@ -16,7 +16,7 @@ from typing import Optional
 from polymarket_predictor.overnight.state import (
     StateManager, RunState, PredictionResult
 )
-from polymarket_predictor.config import DATA_DIR
+from polymarket_predictor.config import DATA_DIR, DEFAULT_MAX_ROUNDS
 
 logger = logging.getLogger(__name__)
 
@@ -207,32 +207,43 @@ class OvernightRunner:
 
             start_time = time.time()
             try:
-                # Gather news
+                # Gather news — deep research with fallback
                 news = NewsAggregator()
+                gen = SeedGenerator()
                 try:
-                    articles = await news.search_articles(market.question, max_results=5)
+                    try:
+                        research = await news.search_articles_deep(market.question, max_results=10)
+                        seed_path = gen.generate_deep_seed(market, research, variant="balanced")
+                        push_log(f"  Deep research: {research.total_words} words from {research.sources_count} sources")
+                    except Exception as e:
+                        logger.warning("Deep research failed, falling back to basic: %s", e)
+                        articles = await news.search_articles(market.question, max_results=5)
+                        seed_path = gen.generate_seed(market, articles, variant="balanced")
                 finally:
                     await news.close()
-
-                # Generate seed
-                gen = SeedGenerator()
-                seed_path = gen.generate_seed(market, articles, variant="balanced")
 
                 # Run full MiroFish pipeline
                 # Include market odds in the requirement so the report agent
                 # knows what the market thinks and can disagree
                 enhanced_requirement = (
                     f"{market.question}\n\n"
-                    f"[MARKET CONTEXT: The prediction market currently prices YES at "
-                    f"{yes_price:.1%}. This means the crowd believes there is a "
-                    f"{yes_price:.0%} chance of YES. Your simulation should evaluate "
-                    f"whether this market price is accurate, too high, or too low.]"
+                    f"[MARKET CONTEXT]\n"
+                    f"Current market odds: {yes_price:.1%} YES\n"
+                    f"Market volume: ${market.volume:,.0f}\n"
+                    f"This is a prediction market where real money is at stake.\n\n"
+                    f"[INSTRUCTIONS FOR SIMULATION]\n"
+                    f"Agents should debate this question from diverse perspectives.\n"
+                    f"Some agents should argue FOR (YES), others AGAINST (NO).\n"
+                    f"Consider: What would make this happen? What would prevent it?\n"
+                    f"Think about base rates — how often do similar events occur?\n"
+                    f"Challenge each other's assumptions. Change your mind if convinced.\n"
                 )
                 pipeline = MiroFishPipeline()
                 try:
                     report = await pipeline.run(
                         seed_file_path=seed_path,
                         simulation_requirement=enhanced_requirement,
+                        max_rounds=DEFAULT_MAX_ROUNDS,
                     )
                 finally:
                     await pipeline.client.aclose()
@@ -250,27 +261,45 @@ class OvernightRunner:
                 sim_id = report.get("simulation_id", "")
                 try:
                     from polymarket_predictor.analyzer.simulation_analyzer import SimulationAnalyzer
+                    from polymarket_predictor.analyzer.method_tracker import MethodTracker, PredictionComparison
                     sim_analyzer = SimulationAnalyzer()
+                    method_tracker = MethodTracker()
                     quant_analysis = sim_analyzer.analyze(
                         sim_id,
                         market_question=market.question,
                         market_odds=yes_price,
                     )
 
-                    # Compare LLM prediction vs quantitative prediction
+                    # Use method tracker for blending (learns optimal weights over time)
                     llm_pred = prediction.probability
                     quant_pred = quant_analysis.computed_probability
+
+                    combined_pred = method_tracker.blend(llm_pred, quant_pred)
+
                     push_log(
-                        f"  LLM prediction: {llm_pred:.1%} vs Quantitative: {quant_pred:.1%} "
-                        f"(diff={abs(llm_pred - quant_pred):.1%}, data: {quant_analysis.total_interactions} interactions)",
+                        f"  LLM: {llm_pred:.1%} | Quant: {quant_pred:.1%} | "
+                        f"Combined: {combined_pred:.1%} (weights: {method_tracker.llm_weight:.0%}/{method_tracker.quant_weight:.0%})",
                         level="info",
                     )
 
-                    # Use the AVERAGE of both methods for now
-                    # (later we can calibrate which method is more accurate)
-                    combined_pred = (llm_pred * 0.4 + quant_pred * 0.6)
+                    # Log the comparison for future scoring
+                    method_tracker.log_prediction(PredictionComparison(
+                        market_id=slug,
+                        question=market.question,
+                        market_odds=yes_price,
+                        llm_prediction=llm_pred,
+                        quant_prediction=quant_pred,
+                        combined_prediction=combined_pred,
+                        llm_weight=method_tracker.llm_weight,
+                        quant_weight=method_tracker.quant_weight,
+                        simulation_id=report.get("simulation_id", ""),
+                        total_agents=quant_analysis.total_agents,
+                        total_interactions=quant_analysis.total_interactions,
+                        consensus_strength=quant_analysis.consensus_strength,
+                    ))
+
+                    # Use combined prediction
                     prediction.probability = combined_pred
-                    push_log(f"  Combined prediction: {combined_pred:.1%} (40% LLM + 60% quantitative)", level="info")
 
                 except Exception as e:
                     logger.warning("Quantitative analysis failed: %s", e)
@@ -371,6 +400,25 @@ class OvernightRunner:
                 if resolved:
                     for r in resolved:
                         push_log(f"  RESOLVED: {r.question[:40]}... -> {'YES' if r.outcome_yes else 'NO'} (P&L: ${r.pnl:+.2f})", level="success")
+
+                    # Score method predictions for resolved markets
+                    try:
+                        from polymarket_predictor.analyzer.method_tracker import MethodTracker
+                        _method_tracker = MethodTracker()
+                        for r in resolved:
+                            try:
+                                scored = _method_tracker.resolve_prediction(r.market_id, r.outcome_yes)
+                                if scored:
+                                    push_log(
+                                        f"  Method scores: LLM={'V' if scored.llm_correct else 'X'} "
+                                        f"Quant={'V' if scored.quant_correct else 'X'} "
+                                        f"Combined={'V' if scored.combined_correct else 'X'}",
+                                        level="info",
+                                    )
+                            except Exception as e:
+                                logger.warning("Method scoring failed for %s: %s", r.market_id, e)
+                    except Exception as e:
+                        logger.warning("Method tracker init failed: %s", e)
             except Exception as e:
                 logger.warning("Resolution check failed: %s", e)
 

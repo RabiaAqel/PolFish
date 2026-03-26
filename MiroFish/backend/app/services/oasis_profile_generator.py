@@ -843,6 +843,85 @@ Important:
                 "interested_topics": ["General", "Social Issues"],
             }
     
+    # --- Stance-aware bio prefixes for diverse agent personas ---
+    STANCE_BIO_PREFIXES = {
+        "bullish": [
+            "Optimistic market analyst focused on growth opportunities.",
+            "Growth-oriented researcher spotting upside potential.",
+            "Forward-looking analyst with a constructive outlook.",
+            "Opportunity-focused commentator who sees promise ahead.",
+            "Bullish strategist betting on positive outcomes.",
+        ],
+        "bearish": [
+            "Risk-focused analyst, skeptical of consensus predictions.",
+            "Contrarian researcher questioning mainstream narratives.",
+            "Cautious observer who stress-tests optimistic claims.",
+            "Skeptical commentator wary of herd mentality.",
+            "Bear-case analyst focused on downside risks.",
+        ],
+        "neutral": [
+            "Data-driven researcher seeking balanced analysis.",
+            "Impartial observer weighing evidence from all sides.",
+            "Independent analyst committed to objectivity.",
+            "Balanced commentator who follows the data wherever it leads.",
+            "Even-handed researcher focused on factual accuracy.",
+        ],
+    }
+
+    @staticmethod
+    def enrich_profiles_with_stance(
+        profiles: list,
+        agent_configs: list,
+        profile_path: str = None,
+    ) -> list:
+        """
+        Post-process agent profiles to reflect their simulation stance.
+
+        Called after both profiles and simulation config are generated.
+        Prepends a stance-appropriate descriptor to each profile's bio so
+        that the agent's LLM persona is primed with the right perspective.
+
+        Args:
+            profiles: List of OasisAgentProfile objects
+            agent_configs: List of AgentActivityConfig objects (or dicts with
+                           'entity_name' and 'stance' keys)
+            profile_path: Optional path to re-save the enriched profiles
+
+        Returns:
+            The modified profiles list
+        """
+        # Build a lookup: entity_name -> stance
+        stance_map = {}
+        for ac in agent_configs:
+            name = ac.entity_name if hasattr(ac, "entity_name") else ac.get("entity_name", "")
+            stance = ac.stance if hasattr(ac, "stance") else ac.get("stance", "neutral")
+            stance_map[name] = stance
+
+        prefixes = OasisProfileGenerator.STANCE_BIO_PREFIXES
+
+        for profile in profiles:
+            stance = stance_map.get(profile.name, "neutral")
+            # Pick a deterministic prefix based on user_id
+            options = prefixes.get(stance, prefixes["neutral"])
+            prefix = options[profile.user_id % len(options)]
+            # Prepend only if not already enriched
+            if not any(profile.bio.startswith(p) for p in options):
+                profile.bio = f"{prefix} {profile.bio}"
+
+        if profile_path:
+            import json as _json
+            try:
+                # Determine format from extension
+                if profile_path.endswith(".json"):
+                    data = [p.to_reddit_format() for p in profiles]
+                    with open(profile_path, "w", encoding="utf-8") as f:
+                        _json.dump(data, f, ensure_ascii=False, indent=2)
+                logger.info(f"Stance-enriched profiles saved to {profile_path}")
+            except Exception as e:
+                logger.warning(f"Failed to save stance-enriched profiles: {e}")
+
+        return profiles
+
     def set_graph_id(self, graph_id: str):
         """Set graph ID for Zep retrieval"""
         self.graph_id = graph_id

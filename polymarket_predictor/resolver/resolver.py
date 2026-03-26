@@ -283,6 +283,14 @@ class MarketResolver:
             pnl,
         )
 
+        # Score method predictions for this resolved market
+        try:
+            from polymarket_predictor.analyzer.method_tracker import MethodTracker
+            tracker = MethodTracker()
+            tracker.resolve_prediction(market_id, outcome_yes)
+        except Exception:
+            pass
+
         return ResolutionResult(
             market_id=market_id,
             question=question or market.question,

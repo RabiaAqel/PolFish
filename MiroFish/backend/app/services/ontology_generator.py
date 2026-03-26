@@ -285,7 +285,7 @@ class OntologyGenerator:
                 edge["description"] = edge["description"][:97] + "..."
         
         # Zep API 限制：最多 10 个自定义实体类型，最多 10 个自定义边类型
-        MAX_ENTITY_TYPES = 10
+        MAX_ENTITY_TYPES = 20
         MAX_EDGE_TYPES = 10
         
         # 兜底类型定义

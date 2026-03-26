@@ -12,9 +12,15 @@ from pathlib import Path
 from typing import Literal
 
 from polymarket_predictor.config import SEEDS_DIR
-from polymarket_predictor.scrapers.news import Article
+from polymarket_predictor.scrapers.news import Article, DeepResearchResult
 from polymarket_predictor.scrapers.polymarket import Market
-from polymarket_predictor.seeds.templates import CATEGORY_MAP, TEMPLATES, SeedTemplate
+from polymarket_predictor.seeds.templates import (
+    CATEGORY_MAP,
+    DEEP_TEMPLATES,
+    DeepSeedTemplate,
+    TEMPLATES,
+    SeedTemplate,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +92,172 @@ class SeedGenerator:
             variant,
             market.question[:60],
             output_path,
+        )
+        return output_path
+
+    def generate_deep_seed(
+        self,
+        market: Market,
+        research: DeepResearchResult,
+        variant: Variant = "balanced",
+    ) -> Path:
+        """Build a rich, structured seed document from deep research.
+
+        Produces an 8,000-10,000 word document with structured sections
+        including Wikipedia context, entity-specific research, contrarian
+        framing, and historical precedent prompts.
+
+        Parameters
+        ----------
+        market:
+            The prediction market to create a seed for.
+        research:
+            Deep research result from :meth:`NewsAggregator.search_articles_deep`.
+        variant:
+            Document flavour.
+
+        Returns
+        -------
+        Path
+            Absolute path to the generated ``.txt`` file.
+        """
+        template = self._resolve_deep_template(market.category)
+
+        # Extract market odds for prominent display
+        yes_price, no_price = self._extract_prices(market)
+        volume = getattr(market, "volume", 0)
+        category = getattr(market, "category", "Unknown")
+        days_until = ""
+        if market.end_date:
+            from datetime import datetime, timezone
+            try:
+                now = datetime.now(timezone.utc)
+                delta = market.end_date - now
+                days_until = f"\n- Days until resolution: {max(0, delta.days)}"
+            except Exception:
+                pass
+
+        sections: list[str] = []
+
+        # --- Header ---
+        sections.append(f"# Market Analysis: {market.question}")
+
+        # --- Market Context ---
+        sections.append(
+            "## Market Context\n"
+            f"- Current odds: {yes_price} YES / {no_price} NO\n"
+            f"- Market volume: ${volume:,.0f}\n"
+            f"- Category: {category}"
+            f"{days_until}\n\n"
+            f"This is a prediction market where real money is at stake. "
+            f"The crowd currently believes there is a {yes_price} chance of YES."
+        )
+
+        # --- Template header ---
+        sections.append(
+            f"## Analysis Framework\n"
+            f"{template.seed_header}\n\n"
+            f"Agent focus: {template.agent_focus}\n"
+            f"Key context: {template.context_emphasis}"
+        )
+
+        # --- Background & Context (Wikipedia) ---
+        if research.wikipedia_context:
+            sections.append(
+                f"## Background & Context\n"
+                f"{research.wikipedia_context}\n\n"
+                f"{template.background_prompt}"
+            )
+        else:
+            sections.append(
+                f"## Background & Context\n"
+                f"{template.background_prompt}"
+            )
+
+        # --- Recent News & Developments ---
+        if research.articles:
+            news_parts = ["## Recent News & Developments"]
+            # Sort by date if available (newest first)
+            sorted_articles = sorted(
+                research.articles,
+                key=lambda a: a.date or "",
+                reverse=True,
+            )
+            for article in sorted_articles:
+                text = (article.text or "")[:_NEWS_HEAVY_ARTICLE_LIMIT]
+                if len(article.text or "") > _NEWS_HEAVY_ARTICLE_LIMIT:
+                    text = text.rsplit(" ", 1)[0] + " ..."
+                header = f"### {article.title} ({article.source}, {article.date})"
+                news_parts.append(f"{header}\n{text}")
+            sections.append("\n\n".join(news_parts))
+        else:
+            sections.append("## Recent News & Developments\nNo articles available.")
+
+        # --- Key Stakeholders & Entities ---
+        if research.entity_articles:
+            entity_parts = [
+                "## Key Stakeholders & Entities\n"
+                f"{template.stakeholder_prompt}"
+            ]
+            for entity, arts in research.entity_articles.items():
+                entity_parts.append(f"### {entity}")
+                for article in arts:
+                    text = (article.text or "")[:_DEFAULT_ARTICLE_LIMIT]
+                    if len(article.text or "") > _DEFAULT_ARTICLE_LIMIT:
+                        text = text.rsplit(" ", 1)[0] + " ..."
+                    entity_parts.append(
+                        f"**{article.title}** ({article.source})\n{text}"
+                    )
+            sections.append("\n\n".join(entity_parts))
+
+        # --- Contrarian Perspectives ---
+        sections.append(
+            "## Contrarian Perspectives\n"
+            f"{template.contrarian_prompt}\n\n"
+            f"**Why might the market be WRONG?**\n"
+            f"The market currently prices YES at {yes_price}. Consider:\n"
+            f"- What evidence would CHANGE this probability significantly?\n"
+            f"- What are the market's blind spots?\n"
+            f"- Is the market over-anchored on recent events?\n"
+            f"- What would a surprise outcome look like?"
+        )
+
+        # --- Historical Precedent ---
+        sections.append(
+            f"## Historical Precedent\n"
+            f"{template.historical_prompt}"
+        )
+
+        # --- Data Points Summary ---
+        sections.append(
+            "## Data Points\n"
+            f"- Current market odds: {yes_price} YES\n"
+            f"- Market volume: ${volume:,.0f}\n"
+            f"{days_until.strip()}\n"
+            f"- Category: {category}\n"
+            f"- Research sources: {research.sources_count}\n"
+            f"- Research depth: {research.total_words} words"
+        )
+
+        # --- Closing ---
+        sections.append(
+            "## Key Question for Analysis\n"
+            f"Based on the evidence above, what is the most likely outcome for: "
+            f"{market.question}?\n\n"
+            f"Agents should debate and estimate the probability of each outcome. "
+            f"Challenge the market consensus of {yes_price} YES — is it too high, "
+            f"too low, or about right?"
+        )
+
+        document = "\n\n".join(sections) + "\n"
+        output_path = self._write(market, f"deep_{variant}", document)
+
+        logger.info(
+            "Generated deep %s seed for '%s' -> %s (%d words)",
+            variant,
+            market.question[:60],
+            output_path,
+            len(document.split()),
         )
         return output_path
 
@@ -201,6 +373,27 @@ class SeedGenerator:
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _extract_prices(market: Market) -> tuple[str, str]:
+        """Extract YES/NO prices as formatted strings."""
+        outcomes = getattr(market, "outcomes", [])
+        yes_price = "N/A"
+        no_price = "N/A"
+        for o in outcomes:
+            name = o.get("name", "").lower()
+            price = o.get("price", 0)
+            if name in ("yes", "up"):
+                yes_price = f"{float(price):.1%}" if price else "N/A"
+            elif name in ("no", "down"):
+                no_price = f"{float(price):.1%}" if price else "N/A"
+        return yes_price, no_price
+
+    @staticmethod
+    def _resolve_deep_template(category: str | None) -> DeepSeedTemplate:
+        """Map a market category string to the matching DeepSeedTemplate."""
+        key = CATEGORY_MAP.get(category or "", "general")
+        return DEEP_TEMPLATES.get(key, DEEP_TEMPLATES["general"])
 
     @staticmethod
     def _resolve_template(category: str | None) -> SeedTemplate:

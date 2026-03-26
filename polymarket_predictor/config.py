@@ -20,7 +20,7 @@ POLYMARKET_GAMMA_URL = "https://gamma-api.polymarket.com"
 POLYMARKET_CLOB_URL = "https://clob.polymarket.com"
 
 # Simulation defaults
-DEFAULT_MAX_ROUNDS = int(os.environ.get("PREDICTOR_MAX_ROUNDS", "15"))
+DEFAULT_MAX_ROUNDS = int(os.environ.get("MAX_SIMULATION_ROUNDS", os.environ.get("PREDICTOR_MAX_ROUNDS", "40")))
 DEFAULT_VARIANTS = int(os.environ.get("PREDICTOR_VARIANTS", "3"))
 
 # Signal thresholds
