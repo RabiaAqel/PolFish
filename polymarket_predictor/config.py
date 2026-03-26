@@ -59,6 +59,10 @@ PROVIDER_DEFAULTS = {
         "base_url": "https://api.groq.com/openai/v1",
         "env_key": "GROQ_API_KEY",
     },
+    "ollama": {
+        "base_url": os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434/v1"),
+        "env_key": "OLLAMA_API_KEY",  # Ollama doesn't need a key, but field required
+    },
 }
 
 # Model pricing database (per 1M tokens: input / output)
@@ -85,6 +89,13 @@ MODEL_PRICING = {
     # Groq (hosted open-source, very fast)
     "llama-3.1-70b-versatile": {"input": 0.59, "output": 0.79, "provider": "groq"},
     "llama-3.1-8b-instant": {"input": 0.05, "output": 0.08, "provider": "groq"},
+    # Ollama (local models, free)
+    "llama3.1:8b": {"input": 0.0, "output": 0.0, "provider": "ollama"},
+    "llama3.1:70b": {"input": 0.0, "output": 0.0, "provider": "ollama"},
+    "mistral:7b": {"input": 0.0, "output": 0.0, "provider": "ollama"},
+    "qwen2.5:14b": {"input": 0.0, "output": 0.0, "provider": "ollama"},
+    "qwen2.5:72b": {"input": 0.0, "output": 0.0, "provider": "ollama"},
+    "deepseek-r1:8b": {"input": 0.0, "output": 0.0, "provider": "ollama"},
 }
 
 
@@ -165,6 +176,20 @@ _PRESETS = {
         "simulation": "gemini-2.5-flash",
         "report": "gemini-2.5-flash",
     },
+    "local": {
+        "ontology": "llama3.1:8b",
+        "graph": "llama3.1:8b",
+        "profiles": "llama3.1:8b",
+        "simulation": "llama3.1:8b",
+        "report": "llama3.1:8b",
+    },
+    "hybrid_local": {
+        "ontology": "llama3.1:8b",
+        "graph": "llama3.1:8b",
+        "profiles": "llama3.1:8b",
+        "simulation": "llama3.1:8b",
+        "report": "gpt-4o",
+    },
 }
 
 PIPELINE_PRESET = os.environ.get("PIPELINE_PRESET", "balanced")
@@ -204,10 +229,17 @@ DEFAULT_BASE_URL = os.environ.get("LLM_BASE_URL", "https://api.openai.com/v1")
 def get_stage_config(stage: str) -> dict:
     """Get model config for a pipeline stage. Falls back to default LLM config."""
     cfg = PIPELINE_MODELS.get(stage, {})
+    api_key = cfg.get("api_key") or DEFAULT_API_KEY
+    base_url = cfg.get("base_url") or DEFAULT_BASE_URL
+
+    # Ollama doesn't need an API key, but the OpenAI client requires a non-empty string
+    if cfg.get("provider") == "ollama":
+        api_key = api_key or "ollama"
+
     return {
         "model": cfg.get("model") or DEFAULT_MODEL,
-        "api_key": cfg.get("api_key") or DEFAULT_API_KEY,
-        "base_url": cfg.get("base_url") or DEFAULT_BASE_URL,
+        "api_key": api_key,
+        "base_url": base_url,
         "price_input": cfg.get("price_input", 2.50),
         "price_output": cfg.get("price_output", 10.00),
     }

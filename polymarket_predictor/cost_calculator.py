@@ -101,6 +101,12 @@ class CostCalculator:
             total += (inp * pricing["input"] + out * pricing["output"]) / 1_000_000
         return total
 
+    def _report_only_cost(self, report_model: str, rounds: int = 15, agents: int = 10) -> float:
+        """Estimate cost when only the report stage uses a paid model (rest are free/local)."""
+        pricing = MODEL_PRICING.get(report_model, {"input": 2.50, "output": 10.00})
+        defaults = self.DEFAULT_TOKEN_ESTIMATES["report"]
+        return (defaults["input"] * pricing["input"] + defaults["output"] * pricing["output"]) / 1_000_000
+
     def compare_configurations(self, rounds: int = 15, agents: int = 10) -> dict:
         """Compare cost of current hybrid config vs various alternatives."""
         current = self.estimate_prediction_cost(rounds, agents)
@@ -113,6 +119,8 @@ class CostCalculator:
             "all_gemini_pro": {"cost_usd": round(self._all_same_model_cost("gemini-2.5-pro", rounds, agents), 4), "model": "gemini-2.5-pro", "label": "All Gemini Pro"},
             "all_claude_sonnet": {"cost_usd": round(self._all_same_model_cost("claude-sonnet-4-20250514", rounds, agents), 4), "model": "claude-sonnet-4-20250514", "label": "All Claude Sonnet"},
             "all_mistral_small": {"cost_usd": round(self._all_same_model_cost("mistral-small-latest", rounds, agents), 4), "model": "mistral-small-latest", "label": "All Mistral Small"},
+            "all_local": {"cost_usd": 0.0, "model": "llama3.1:8b (Ollama)", "label": "All Local", "note": "Free but slower"},
+            "hybrid_local": {"cost_usd": round(self._report_only_cost("gpt-4o", rounds, agents), 4), "model": "Local + GPT-4o report", "label": "Hybrid Local", "note": "Only report costs money"},
         }
 
         # Build presets from the actual config presets
@@ -123,6 +131,8 @@ class CostCalculator:
             "cheapest": "Cheapest (all DeepSeek)",
             "best": "Best Quality (all GPT-4o)",
             "gemini": "Gemini (all Gemini Flash)",
+            "local": "Local (all Ollama)",
+            "hybrid_local": "Hybrid Local (Ollama + cloud report)",
         }
         _preset_descriptions = {
             "balanced": "DeepSeek prep + Gemini profiles + GPT-4o sim/report",
@@ -131,6 +141,8 @@ class CostCalculator:
             "cheapest": "All DeepSeek V3 — minimum cost",
             "best": "All GPT-4o — maximum quality",
             "gemini": "All Gemini Flash — fast and cheap",
+            "local": "All Ollama local models — free, no API keys needed",
+            "hybrid_local": "Ollama for prep/sim + GPT-4o for report quality",
         }
 
         presets = {}

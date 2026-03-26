@@ -51,3 +51,50 @@ class TestGeminiConfig:
         """gemini-2.5-flash-lite should be in the pricing table."""
         assert "gemini-2.5-flash-lite" in MODEL_PRICING, "gemini-2.5-flash-lite missing from MODEL_PRICING"
         assert MODEL_PRICING["gemini-2.5-flash-lite"]["provider"] == "gemini"
+
+
+class TestOllamaConfig:
+    def test_ollama_provider_exists(self):
+        """Ollama should be a registered provider."""
+        assert "ollama" in PROVIDER_DEFAULTS
+
+    def test_ollama_models_in_pricing(self):
+        """Ollama models should be in pricing with $0 cost."""
+        ollama_models = [k for k, v in MODEL_PRICING.items() if v.get("provider") == "ollama"]
+        assert len(ollama_models) >= 1
+
+    def test_ollama_models_free(self):
+        """All Ollama models should have zero cost."""
+        for model, info in MODEL_PRICING.items():
+            if info.get("provider") == "ollama":
+                assert info["input"] == 0.0, f"{model} input cost should be 0"
+                assert info["output"] == 0.0, f"{model} output cost should be 0"
+
+    def test_local_preset_exists(self):
+        """Local preset should exist."""
+        assert "local" in _PRESETS
+
+    def test_hybrid_local_preset_exists(self):
+        """Hybrid local preset should exist."""
+        assert "hybrid_local" in _PRESETS
+
+    def test_local_preset_all_ollama(self):
+        """Local preset should use only Ollama models."""
+        for stage, model in _PRESETS["local"].items():
+            assert MODEL_PRICING[model]["provider"] == "ollama", (
+                f"Local preset stage '{stage}' uses '{model}' which is not an Ollama model"
+            )
+
+    def test_hybrid_local_uses_local_for_simulation(self):
+        """Hybrid local should use Ollama for simulation."""
+        model = _PRESETS["hybrid_local"]["simulation"]
+        assert MODEL_PRICING[model]["provider"] == "ollama"
+
+    def test_hybrid_local_uses_cloud_for_report(self):
+        """Hybrid local should use cloud for report."""
+        model = _PRESETS["hybrid_local"]["report"]
+        assert MODEL_PRICING[model]["provider"] != "ollama"
+
+    def test_ollama_base_url_default(self):
+        """Ollama provider should default to localhost:11434."""
+        assert "localhost:11434" in PROVIDER_DEFAULTS["ollama"]["base_url"]

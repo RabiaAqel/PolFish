@@ -25,6 +25,7 @@ cp MiroFish/.env.example MiroFish/.env
 | `ANTHROPIC_API_KEY` | string | `""` | Anthropic Claude API key for simulation. |
 | `MISTRAL_API_KEY` | string | `""` | Mistral API key. |
 | `GROQ_API_KEY` | string | `""` | Groq API key for fast open-source model inference. |
+| `OLLAMA_BASE_URL` | string | `http://localhost:11434/v1` | Base URL for local Ollama server. |
 | `ZEP_API_KEY` | string | `""` | Zep API key for knowledge graph memory. |
 
 ### Pipeline Preset
@@ -89,6 +90,8 @@ Set `PIPELINE_PRESET` in your `.env` file to switch between pre-configured model
 | `cheapest` | deepseek-chat | deepseek-chat | deepseek-chat | deepseek-chat | deepseek-chat | ~$0.02 |
 | `best` | gpt-4o | gpt-4o | gpt-4o | gpt-4o | gpt-4o | ~$0.58 |
 | `gemini` | gemini-2.5-flash | gemini-2.5-flash | gemini-2.0-flash | gemini-2.5-flash | gemini-2.5-flash | ~$0.03 |
+| `local` | llama3.1:8b | llama3.1:8b | llama3.1:8b | llama3.1:8b | llama3.1:8b | $0.00 |
+| `hybrid_local` | llama3.1:8b | llama3.1:8b | llama3.1:8b | llama3.1:8b | gpt-4o | ~$0.12 |
 | `custom` | (env vars) | (env vars) | (env vars) | (env vars) | (env vars) | varies |
 
 ### Switching Presets
@@ -191,6 +194,59 @@ REPORT_MODEL=gemini-2.5-flash
 
 **Models available:** `llama-3.1-70b-versatile` ($0.59/$0.79), `llama-3.1-8b-instant` ($0.05/$0.08)
 
+### Local Models (Ollama)
+
+Ollama lets you run open-source models locally with zero API costs. It exposes an OpenAI-compatible endpoint that works with the existing pipeline.
+
+**Installation:**
+
+```bash
+# macOS
+brew install ollama
+
+# Start the server (runs in background)
+ollama serve
+
+# Pull models
+ollama pull llama3.1:8b      # Fast, good for preprocessing (~4.7 GB)
+ollama pull llama3.1:70b     # High quality, needs 40+ GB RAM
+ollama pull qwen2.5:14b      # Good balance of speed and quality
+ollama pull deepseek-r1:8b   # Reasoning model
+```
+
+**Configuration:**
+
+```bash
+# All-local (free, no API keys needed):
+PIPELINE_PRESET=local
+
+# Hybrid (local preprocessing + cloud report for quality):
+PIPELINE_PRESET=hybrid_local
+LLM_API_KEY=sk-proj-...   # Still need OpenAI key for the report stage
+
+# Custom Ollama base URL (default: http://localhost:11434/v1):
+OLLAMA_BASE_URL=http://192.168.1.100:11434/v1
+```
+
+**Performance expectations:**
+
+| Model | Speed | Quality | RAM Required |
+|-------|-------|---------|-------------|
+| llama3.1:8b | Fast (~20 tok/s) | Good for prep stages | ~5 GB |
+| llama3.1:70b | Slow (~3 tok/s) | Near GPT-4o quality | ~40 GB |
+| qwen2.5:14b | Medium (~12 tok/s) | Good all-rounder | ~9 GB |
+| mistral:7b | Fast (~22 tok/s) | Good for simple tasks | ~4 GB |
+| deepseek-r1:8b | Medium (~15 tok/s) | Good reasoning | ~5 GB |
+
+**Recommended per-stage models:**
+
+- **Ontology/Graph:** llama3.1:8b (fast, these stages are simple)
+- **Profiles:** llama3.1:8b or qwen2.5:14b
+- **Simulation:** qwen2.5:14b or llama3.1:70b (quality matters here)
+- **Report:** Use cloud (gpt-4o) for best quality, or llama3.1:70b locally
+
+**Models available:** `llama3.1:8b`, `llama3.1:70b`, `mistral:7b`, `qwen2.5:14b`, `qwen2.5:72b`, `deepseek-r1:8b` (all $0.00)
+
 ### Zep (Required for knowledge graph)
 
 1. Sign up at [app.getzep.com](https://app.getzep.com)
@@ -267,6 +323,25 @@ Higher weights mean the system bets more aggressively in that category. Science,
 ---
 
 ## Example Configurations
+
+### Free local setup (no API keys, no costs)
+
+```bash
+PIPELINE_PRESET=local
+ZEP_API_KEY=z_...
+```
+
+Cost: $0.00/prediction using Ollama. Requires `ollama serve` running locally with `llama3.1:8b` pulled.
+
+### Hybrid local + cloud setup
+
+```bash
+PIPELINE_PRESET=hybrid_local
+LLM_API_KEY=sk-proj-...
+ZEP_API_KEY=z_...
+```
+
+Cost: ~$0.12/prediction. Local models for all prep stages, GPT-4o only for the final report.
 
 ### Cheapest possible setup (free tiers only)
 

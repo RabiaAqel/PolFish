@@ -17,6 +17,7 @@ from polymarket_predictor.overnight.state import (
     StateManager, RunState, PredictionResult
 )
 from polymarket_predictor.config import DATA_DIR, DEFAULT_MAX_ROUNDS
+from polymarket_predictor.cost_calculator import CostCalculator
 
 logger = logging.getLogger(__name__)
 
@@ -181,8 +182,12 @@ class OvernightRunner:
                 )
 
                 # Log cost savings from thesis grouping
-                old_cost = total_markets * 0.42
-                new_cost = len(groups) * 0.42
+                _cost_calc = CostCalculator()
+                _per_prediction_cost = _cost_calc.estimate_prediction_cost(
+                    rounds=DEFAULT_MAX_ROUNDS, agents=50
+                ).total_estimated_cost_usd
+                old_cost = total_markets * _per_prediction_cost
+                new_cost = len(groups) * _per_prediction_cost
                 saved = old_cost - new_cost
                 if len(multi_tier) > 0:
                     push_log(
@@ -335,7 +340,10 @@ class OvernightRunner:
                     push_log(f"  Quantitative analysis failed: {e} (using LLM prediction only)", level="info")
 
                 elapsed = time.time() - start_time
-                prediction_cost = 0.42  # estimated per deep prediction
+                # Estimate cost based on current pipeline preset
+                _calc = CostCalculator()
+                _estimate = _calc.estimate_prediction_cost(rounds=DEFAULT_MAX_ROUNDS, agents=50)
+                prediction_cost = _estimate.total_estimated_cost_usd
 
                 # --- Phase 3: Apply thesis to tiers and bet ---
                 state.current_phase = "betting"

@@ -398,6 +398,8 @@ const presetDescriptions = {
   cheapest: 'All DeepSeek',
   best: 'All GPT-4o',
   gemini: 'All Gemini 2.5 Flash',
+  local: 'All Ollama local (free)',
+  hybrid_local: 'Local prep + GPT-4o report',
 }
 const presetCosts = {
   balanced: '0.42',
@@ -406,6 +408,8 @@ const presetCosts = {
   cheapest: '0.02',
   best: '0.58',
   gemini: '0.03',
+  local: '0.00',
+  hybrid_local: '0.12',
 }
 
 const allCategories = [
@@ -457,6 +461,7 @@ const apiKeyLabels = {
   deepseek: 'DeepSeek',
   gemini: 'Gemini',
   anthropic: 'Anthropic',
+  ollama: 'Ollama (Local)',
   zep: 'Zep (Memory)',
 }
 
