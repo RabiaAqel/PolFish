@@ -213,7 +213,8 @@ def generate_ontology():
         
         # 生成本体
         logger.info("调用 LLM 生成本体定义...")
-        generator = OntologyGenerator()
+        from ..utils.hybrid_llm import get_llm_for_stage
+        generator = OntologyGenerator(llm_client=get_llm_for_stage("ontology"))
         ontology = generator.generate(
             document_texts=document_texts,
             simulation_requirement=simulation_requirement,

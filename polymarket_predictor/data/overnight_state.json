@@ -1,0 +1,29 @@
+{
+  "run_id": "overnight_20260326_075054",
+  "mode": "overnight",
+  "status": "running",
+  "total_target": 4,
+  "max_budget_usd": 5.0,
+  "current_round": 0,
+  "completed": 0,
+  "failed": 0,
+  "skipped": 0,
+  "current_market": "us-x-iran-ceasefire-by-april-7-278",
+  "current_phase": "predicting",
+  "results": [],
+  "errors": [],
+  "total_cost_usd": 0.0,
+  "started_at": "2026-03-26T05:50:54.313039+00:00",
+  "last_checkpoint_at": "2026-03-26T07:50:56",
+  "paused_at": null,
+  "completed_at": null,
+  "round_interval_seconds": 3600,
+  "lifetime_rounds": 0,
+  "lifetime_bets": 0,
+  "lifetime_pnl": 0.0,
+  "lifetime_cost": 0.0,
+  "strategy_version": 1,
+  "processed_slugs": [
+    "us-x-iran-ceasefire-by-april-7-278"
+  ]
+}

@@ -1201,7 +1201,12 @@ class ReportAgent:
             if progress_callback:
                 progress_callback("planning", 100, "Outline planning complete")
             
-            logger.info(f"Outline planning complete: {len(sections)} sections")
+            # Always append a mandatory Prediction Verdict section
+            sections.append(ReportSection(
+                title="Prediction Verdict",
+                content=""
+            ))
+            logger.info(f"Outline planning complete: {len(sections)} sections (including mandatory Prediction Verdict)")
             return outline
             
         except Exception as e:
@@ -1217,8 +1222,69 @@ class ReportAgent:
                 ]
             )
     
+    def _generate_prediction_verdict(
+        self,
+        outline: 'ReportOutline',
+        previous_sections: List[str],
+    ) -> str:
+        """Generate the mandatory Prediction Verdict section.
+
+        This section forces the LLM to output a specific probability estimate
+        in a parseable format, based on all the analysis from previous sections.
+        """
+        previous_content = "\n\n".join(previous_sections[-3:])  # Last 3 sections for context
+
+        system_prompt = f"""\
+You are a prediction market analyst. You have read a detailed simulation report about the following question:
+
+"{self.simulation_requirement}"
+
+Based on the report sections you've read, you must now provide your FINAL PREDICTION VERDICT.
+
+CRITICAL RULES:
+1. You MUST provide a specific numerical probability — NOT a vague statement like "likely" or "possible"
+2. The probability must reflect the ACTUAL simulation findings, not a generic guess
+3. Consider: What did the majority of agents conclude? What evidence emerged? What risks were identified?
+4. Your probability should be CALIBRATED — if the evidence is mixed, say 45-55%. If it's strongly one-sided, say 15% or 85%.
+5. DO NOT default to 50%, 65%, or 35% — these are lazy defaults. Think carefully.
+6. Consider the current market odds and whether the simulation revealed something the market may have missed.
+
+OUTPUT FORMAT (you MUST follow this exactly):
+- Probability of YES outcome: [your number]%
+- Confidence: [high/medium/low]
+- Direction: [YES/NO/NEUTRAL]
+- Key evidence: [one sentence summarizing the strongest evidence]
+- Contrarian view: [one sentence about what could go wrong]"""
+
+        user_prompt = f"""\
+Here is the simulation analysis so far:
+
+{previous_content}
+
+Now provide your Prediction Verdict. Remember:
+- Be SPECIFIC with the probability number (e.g., 23.5%, 67%, 41%)
+- Base it on the ACTUAL simulation findings above
+- Do NOT use round numbers like 50%, 65%, 25% unless the evidence truly points there
+- Consider both the bull and bear case from the simulation"""
+
+        try:
+            content = self.llm.chat(
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                temperature=0.3,
+            )
+            # LLMClient.chat() returns a string directly
+            content = content.strip() if isinstance(content, str) else str(content)
+            logger.info("Prediction Verdict generated: %s", content[:200])
+            return content
+        except Exception as e:
+            logger.error("Failed to generate Prediction Verdict: %s", e)
+            return "Prediction Verdict could not be generated due to an error."
+
     def _generate_section_react(
-        self, 
+        self,
         section: ReportSection,
         outline: ReportOutline,
         previous_sections: List[str],
@@ -1652,6 +1718,25 @@ class ReportAgent:
                         f"正在生成章节: {section.title} ({section_num}/{total_sections})"
                     )
                 
+                # Special handling for the mandatory Prediction Verdict section
+                if section.title == "Prediction Verdict":
+                    section_content = self._generate_prediction_verdict(
+                        outline=outline,
+                        previous_sections=generated_sections,
+                    )
+                    section.content = section_content
+                    generated_sections.append(f"## {section.title}\n\n{section_content}")
+                    ReportManager.save_section(report_id, section_num, section)
+                    completed_section_titles.append(section.title)
+                    if self.report_logger:
+                        self.report_logger.log_section_full_complete(
+                            section_title=section.title,
+                            section_index=section_num,
+                            full_content=f"## {section.title}\n\n{section_content}".strip()
+                        )
+                    logger.info(f"Prediction Verdict generated: {report_id}")
+                    continue
+
                 # 生成主章节内容
                 section_content = self._generate_section_react(
                     section=section,

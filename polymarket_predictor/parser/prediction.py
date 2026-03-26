@@ -42,6 +42,12 @@ class Prediction:
 # "probability of 65%", "likelihood of 65%", "estimated at 65%",
 # "approximately 65%", "Yes: 65%", "Yes outcome: 65%"
 _PROBABILITY_PATTERNS: list[re.Pattern[str]] = [
+    # HIGHEST PRIORITY: Prediction Verdict format from MiroFish report
+    # "Probability of YES outcome: X%" or "- Probability of YES outcome: X%"
+    re.compile(
+        r"Probability\s+of\s+YES\s+outcome\s*:\s*(\d{1,3}(?:\.\d+)?)\s*%",
+        re.IGNORECASE,
+    ),
     # "X% probability / likely / chance"
     re.compile(
         r"(\d{1,3}(?:\.\d+)?)\s*%\s*(?:probability|likely|likelihood|chance)",
@@ -63,6 +69,9 @@ _PROBABILITY_PATTERNS: list[re.Pattern[str]] = [
         re.IGNORECASE,
     ),
 ]
+
+# Default LLM probabilities to flag as low-quality
+_DEFAULT_PROBABILITIES = {0.25, 0.35, 0.50, 0.65, 0.75}
 
 _HIGH_CONFIDENCE_KEYWORDS = re.compile(
     r"high\s+confidence|strong\s+consensus|very\s+likely|highly\s+confident",
@@ -140,6 +149,16 @@ class PredictionParser:
 
         # 2) Fall back to LLM
         prediction = await self._parse_with_llm(report_text, market_question)
+
+        # 3) Quality check: flag default LLM probabilities
+        rounded = round(prediction.probability, 2)
+        if rounded in _DEFAULT_PROBABILITIES:
+            logger.warning(
+                "Prediction %.2f looks like an LLM default — marking as low confidence",
+                prediction.probability,
+            )
+            prediction.confidence = "low"
+
         return prediction
 
     # -- regex extraction ---------------------------------------------------

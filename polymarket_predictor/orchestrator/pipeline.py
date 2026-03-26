@@ -138,23 +138,51 @@ class MiroFishPipeline:
             raise PipelineError(f"Simulation preparation failed: {result.get('error', 'unknown')}")
 
         task_id = result["data"].get("task_id")
-        if task_id:
-            await self._poll_post_status(
-                "/simulation/prepare/status",
-                body={"task_id": task_id},
-                timeout=600,
-            )
+        already_prepared = result["data"].get("already_prepared", False)
+
+        if already_prepared:
+            logger.info("Simulation %s already prepared, skipping poll", simulation_id)
+        else:
+            # Wait for prepare to actually start, then poll until ready
+            logger.info("Waiting for prepare to complete for %s...", simulation_id)
+            elapsed = 0
+            timeout = 600
+            interval = 5
+            while elapsed < timeout:
+                await asyncio.sleep(interval)
+                elapsed += interval
+                # Check simulation status directly
+                resp2 = await self.client.get(f"/simulation/{simulation_id}")
+                if resp2.status_code == 200:
+                    sim_data = resp2.json().get("data", {})
+                    sim_status = sim_data.get("status", "")
+                    logger.info("Simulation %s status: %s (%ds elapsed)", simulation_id, sim_status, elapsed)
+                    if sim_status in ("ready", "completed"):
+                        break
+                    if sim_status == "failed":
+                        raise PipelineError(f"Simulation prepare failed: {sim_data.get('error', 'unknown')}")
+            else:
+                raise PipelineError(f"Prepare timed out after {timeout}s")
 
     async def run_simulation(self, simulation_id: str, max_rounds: int = DEFAULT_MAX_ROUNDS) -> None:
         """Start the simulation and block until it finishes."""
+        # Brief pause to let MiroFish internal state settle after prepare
+        await asyncio.sleep(3)
         resp = await self.client.post(
             "/simulation/start",
             json={
                 "simulation_id": simulation_id,
                 "max_rounds": max_rounds,
+                "force": True,  # Force start even if status isn't READY
             },
         )
-        resp.raise_for_status()
+        if resp.status_code >= 400:
+            try:
+                err_body = resp.json()
+                err_msg = err_body.get("error", resp.text[:200])
+            except Exception:
+                err_msg = resp.text[:200]
+            raise PipelineError(f"Simulation start failed ({resp.status_code}): {err_msg}")
         result = resp.json()
         if not result.get("success"):
             raise PipelineError(f"Simulation start failed: {result.get('error', 'unknown')}")

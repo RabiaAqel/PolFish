@@ -119,22 +119,60 @@ class OvernightRunner:
             try:
                 async with MarketScanner() as scanner:
                     interesting = await scanner.scan_interesting(
-                        days_ahead=14,
+                        days_ahead=30,
                         min_volume=100,
                         odds_range=(0.10, 0.90),
                     )
-                    # Filter out already-processed
-                    for m in interesting:
-                        if m.slug not in state.processed_slugs:
-                            market = m
-                            break
+                    # Filter out already-processed and ultra-short HF markets
+                    # 5m/15m too simple for deep — 1h/4h/daily are OK
+                    SKIP_HF = ("-5m-", "-15m-")
+                    candidates = [
+                        m for m in interesting
+                        if m.slug not in state.processed_slugs
+                        and not any(p in m.slug for p in SKIP_HF)
+                    ]
 
-                if market is None:
+                if not candidates:
                     push_log("No new markets found — all available markets processed", level="info")
                     state.status = "completed"
                     state.completed_at = datetime.now(timezone.utc).isoformat()
                     self._sm.checkpoint(state, "No more markets to process")
                     break
+
+                # --- Rank candidates by edge potential ---
+                # Prefer markets that are NOT near 50/50 (more room for disagreement),
+                # have lower volume (less efficient), and are niche topics.
+                # Markets near 50% tend to produce SKIP because the simulation
+                # agrees with the market consensus.
+
+                def _edge_potential(m):
+                    """Score a market's potential for finding edge. Higher = better."""
+                    yes_price = 0.5
+                    for o in m.outcomes:
+                        if isinstance(o, dict) and o.get("name", "").lower() in ("yes", "up"):
+                            yes_price = float(o.get("price", 0.5))
+                            break
+
+                    # Distance from 50% — markets at 20% or 80% have more potential
+                    asymmetry = abs(yes_price - 0.5) * 2  # 0 at 50%, 1 at 0% or 100%
+
+                    # Low volume = less efficient market
+                    vol = getattr(m, "volume", 0) or 0
+                    vol_score = 1.0 if vol < 5000 else (0.5 if vol < 50000 else 0.2)
+
+                    return asymmetry * 0.6 + vol_score * 0.4
+
+                candidates.sort(key=_edge_potential, reverse=True)
+
+                # Take the best candidate
+                market = candidates[0]
+                score = _edge_potential(market)
+                push_log(
+                    f"Selected from {len(candidates)} candidates: "
+                    f"{market.question[:50]}... (edge potential={score:.2f})",
+                    level="success",
+                )
+
             except Exception as e:
                 logger.exception("Scan failed")
                 state.errors.append({"phase": "scanning", "error": str(e), "time": time.strftime("%H:%M:%S")})
@@ -191,7 +229,11 @@ class OvernightRunner:
                     await pipeline.client.aclose()
 
                 # Extract prediction
-                report_text = report.get("report_text", "") or report.get("content", "")
+                report_text = (
+                    report.get("markdown_content", "")
+                    or report.get("report_text", "")
+                    or report.get("content", "")
+                )
                 parser = PredictionParser()
                 prediction = await parser.parse(report_text, market.question)
 
@@ -233,6 +275,12 @@ class OvernightRunner:
                             market_id=slug, slug=slug, question=market.question,
                             side=side, amount=bet_info["amount"], odds=yes_price,
                             closes_at=closes_at,
+                            prediction=prediction.probability,
+                            edge=abs_edge,
+                            confidence=prediction.confidence,
+                            mode="deep",
+                            kelly_fraction=bet_info.get("kelly_fraction", 0.0),
+                            cost_usd=result.cost_usd,
                         )
                         result.side = side
                         result.bet_amount = bet_info["amount"]

@@ -312,7 +312,18 @@ class SimulationManager:
                 )
             
             # 传入graph_id以启用Zep检索功能，获取更丰富的上下文
-            generator = OasisProfileGenerator(graph_id=state.graph_id)
+            # Use hybrid config for profiles stage
+            try:
+                from polymarket_predictor.config import get_stage_config
+                _pcfg = get_stage_config("profiles")
+                generator = OasisProfileGenerator(
+                    graph_id=state.graph_id,
+                    api_key=_pcfg.get("api_key"),
+                    base_url=_pcfg.get("base_url"),
+                    model_name=_pcfg.get("model"),
+                )
+            except Exception:
+                generator = OasisProfileGenerator(graph_id=state.graph_id)
             
             def profile_progress(current, total, msg):
                 if progress_callback:

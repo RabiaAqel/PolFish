@@ -431,6 +431,18 @@ class SimulationRunner:
             env = os.environ.copy()
             env['PYTHONUTF8'] = '1'  # Python 3.7+ 支持，让所有 open() 默认使用 UTF-8
             env['PYTHONIOENCODING'] = 'utf-8'  # 确保 stdout/stderr 使用 UTF-8
+
+            # Inject hybrid pipeline config for simulation stage
+            try:
+                from polymarket_predictor.config import get_stage_config
+                sim_cfg = get_stage_config("simulation")
+                if sim_cfg.get("api_key"):
+                    env['LLM_API_KEY'] = sim_cfg["api_key"]
+                    env['LLM_BASE_URL'] = sim_cfg["base_url"]
+                    env['LLM_MODEL_NAME'] = sim_cfg["model"]
+                    logger.info("Hybrid LLM [simulation]: %s via %s", sim_cfg["model"], sim_cfg["base_url"][:40])
+            except Exception:
+                pass  # Fall back to default env vars
             
             # 设置工作目录为模拟目录（数据库等文件会生成在此）
             # 使用 start_new_session=True 创建新的进程组，确保可以通过 os.killpg 终止所有子进程

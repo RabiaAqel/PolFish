@@ -131,10 +131,12 @@ def generate_report():
                 )
                 
                 # 创建Report Agent
+                from ..utils.hybrid_llm import get_llm_for_stage
                 agent = ReportAgent(
                     graph_id=graph_id,
                     simulation_id=simulation_id,
-                    simulation_requirement=simulation_requirement
+                    simulation_requirement=simulation_requirement,
+                    llm_client=get_llm_for_stage("report"),
                 )
                 
                 # 进度回调
@@ -537,10 +539,12 @@ def chat_with_report_agent():
         simulation_requirement = project.simulation_requirement or ""
         
         # 创建Agent并进行对话
+        from ..utils.hybrid_llm import get_llm_for_stage
         agent = ReportAgent(
             graph_id=graph_id,
             simulation_id=simulation_id,
-            simulation_requirement=simulation_requirement
+            simulation_requirement=simulation_requirement,
+            llm_client=get_llm_for_stage("report")
         )
         
         result = agent.chat(message=message, chat_history=chat_history)

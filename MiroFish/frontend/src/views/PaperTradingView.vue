@@ -227,7 +227,7 @@
             <td class="market-cell">
               <a
                 v-if="pos.slug"
-                :href="'https://polymarket.com/event/' + pos.slug"
+                :href="'https://polymarket.com/market/' + pos.slug"
                 target="_blank"
                 rel="noopener noreferrer"
                 class="market-link"
@@ -284,7 +284,7 @@
             <td class="market-cell">
               <a
                 v-if="pos.slug"
-                :href="'https://polymarket.com/event/' + pos.slug"
+                :href="'https://polymarket.com/market/' + pos.slug"
                 target="_blank"
                 rel="noopener noreferrer"
                 class="market-link"
