@@ -361,6 +361,10 @@ class BetSizer:
         if not (0 < probability < 1) or not (0 < odds < 1):
             return 0.0
 
+        # No edge → no bet (with epsilon for floating point)
+        if abs(probability - odds) < 1e-9:
+            return 0.0
+
         # Net payout ratio for a YES bet at price `odds`:
         # You pay `odds` per share and receive 1 if correct → net gain = 1/odds - 1
         b = (1.0 / odds) - 1.0

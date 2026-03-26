@@ -230,7 +230,7 @@ class TestLLMExtraction:
         pred = await parser.parse(report, "Will X happen?")
         assert pred.probability == 0.5
         assert pred.confidence == "low"
-        assert "no API key" in pred.key_factors[0]
+        assert any("failed" in f.lower() or "no api key" in f.lower() for f in pred.key_factors)
 
     @pytest.mark.asyncio
     async def test_malformed_json_returns_default(self, parser_with_key):

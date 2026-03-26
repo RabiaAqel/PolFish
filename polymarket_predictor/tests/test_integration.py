@@ -144,9 +144,10 @@ class TestCalibrationImproves:
     def test_calibrator_adjusts_probability(self, tmp_path: Path):
         """Calibrator.calibrate() should modify raw probability when there
         is enough calibration data showing systematic bias."""
-        from polymarket_predictor.calibrator.calibrate import Calibrator, CALIBRATION_FILE
+        from polymarket_predictor.calibrator.calibrate import Calibrator
 
-        calibrator = Calibrator()
+        # Use temp file so we don't load stale calibration data from disk
+        calibrator = Calibrator(calibration_file=tmp_path / "calibration.json")
 
         # Before any calibration data, calibrate should return raw probability
         raw = 0.65
@@ -165,10 +166,11 @@ class TestCalibrationImproves:
             "brier_score": 0.15,
             "total_predictions": 50,
         }
-        CALIBRATION_FILE.write_text(json.dumps(curve))
+        cal_file = tmp_path / "calibration.json"
+        cal_file.write_text(json.dumps(curve))
 
-        # Reload the calibrator
-        calibrator2 = Calibrator()
+        # Reload the calibrator with the curve file
+        calibrator2 = Calibrator(calibration_file=cal_file)
         calibrated2 = calibrator2.calibrate(0.65)
 
         # The calibrator should adjust: raw(0.65) + (actual(0.55) - predicted(0.65)) = 0.55

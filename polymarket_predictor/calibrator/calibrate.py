@@ -27,15 +27,16 @@ class CalibrationReport:
     calibration_error: float   # Mean absolute calibration error
 
 class Calibrator:
-    def __init__(self):
+    def __init__(self, calibration_file: Path | None = None):
         self.history = PredictionHistory()
         self._curve: dict | None = None
+        self._calibration_file = calibration_file or CALIBRATION_FILE
         self._load_curve()
 
     def _load_curve(self):
         """Load saved calibration curve if it exists."""
-        if CALIBRATION_FILE.exists():
-            self._curve = json.loads(CALIBRATION_FILE.read_text())
+        if self._calibration_file.exists():
+            self._curve = json.loads(self._calibration_file.read_text())
             logger.info(f"Loaded calibration curve with {len(self._curve.get('bins', []))} bins")
 
     def build_calibration(self) -> CalibrationReport:
