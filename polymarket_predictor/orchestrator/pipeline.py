@@ -108,7 +108,7 @@ class MiroFishPipeline:
         task_id = result["data"]["task_id"]
 
         # Poll until the build task completes
-        await self._wait_for_task(f"/graph/task/{task_id}", timeout=600)
+        await self._wait_for_task(f"/graph/task/{task_id}", timeout=1200)  # 20min for large graphs
 
         # Retrieve the graph_id from the project record
         resp = await self.client.get(f"/graph/project/{project_id}")
@@ -324,6 +324,12 @@ class MiroFishPipeline:
                     reddit_profiles = []
 
                 next_uid = max((p.get("user_id", 0) for p in reddit_profiles), default=-1) + 1
+
+                # OASIS requires these fields for Reddit agents
+                mbti_types = ["INTJ", "ENTP", "ISFJ", "ESTP", "INFP", "ENTJ", "ISTJ", "ENFP"]
+                genders = ["male", "female", "non-binary"]
+                countries = ["US", "UK", "Canada", "Germany", "Japan", "Australia", "India", "France"]
+
                 for i, tmpl in enumerate(templates):
                     reddit_profiles.append({
                         "user_id": next_uid + i,
@@ -334,7 +340,23 @@ class MiroFishPipeline:
                         "karma": 100,
                         "created_at": "2024-01-01T00:00:00",
                         "profession": tmpl["type"],
+                        # Required by OASIS agent generator
+                        "mbti": mbti_types[i % len(mbti_types)],
+                        "gender": genders[i % len(genders)],
+                        "age": 25 + (i * 3) % 40,  # Range 25-64
+                        "country": countries[i % len(countries)],
                     })
+                # Ensure ALL profiles have required OASIS fields (organic profiles may be missing them)
+                for j, profile in enumerate(reddit_profiles):
+                    if "mbti" not in profile:
+                        profile["mbti"] = mbti_types[j % len(mbti_types)]
+                    if "gender" not in profile:
+                        profile["gender"] = genders[j % len(genders)]
+                    if "age" not in profile:
+                        profile["age"] = 25 + (j * 3) % 40
+                    if "country" not in profile:
+                        profile["country"] = countries[j % len(countries)]
+
                 reddit_path.write_text(json.dumps(reddit_profiles, indent=2, ensure_ascii=False), encoding="utf-8")
 
             # --- 3. Append Twitter profiles ---

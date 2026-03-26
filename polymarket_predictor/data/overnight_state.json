@@ -1,5 +1,5 @@
 {
-  "run_id": "overnight_20260326_143358",
+  "run_id": "overnight_20260326_205017",
   "mode": "overnight",
   "status": "completed",
   "total_target": 1,
@@ -12,30 +12,30 @@
   "current_phase": "resolving",
   "results": [
     {
-      "market_id": "elon-musk-of-tweets-march-27-april-3-280-299",
-      "slug": "elon-musk-of-tweets-march-27-april-3-280-299",
-      "question": "Will Elon Musk post 280-299 tweets from March 27 to April 3, 2026?",
-      "market_odds": 0.105,
-      "prediction": 0.349042554807965,
-      "edge": 0.244,
-      "signal": "BUY_YES",
-      "confidence": "medium",
-      "side": "YES",
-      "bet_amount": 185.67,
+      "market_id": "will-tisza-respect-and-freedom-party-tisza-win-the-most-seats-in-the-next-hungarian-parliamentary-election",
+      "slug": "will-tisza-respect-and-freedom-party-tisza-win-the-most-seats-in-the-next-hungarian-parliamentary-election",
+      "question": "Will TISZA \u2013 Respect and Freedom Party (TISZA) win the most seats in the next Hungarian parliamentary election?",
+      "market_odds": 0.625,
+      "prediction": 0.570161703224781,
+      "edge": -0.0548,
+      "signal": "BUY_NO",
+      "confidence": "low",
+      "side": "NO",
+      "bet_amount": 28.65,
       "bet_placed": true,
       "cost_usd": 0.42,
-      "duration_seconds": 1277.7,
+      "duration_seconds": 2495.9,
       "error": null,
       "status": "completed",
-      "completed_at": "2026-03-26T12:55:21.410959+00:00"
+      "completed_at": "2026-03-26T19:31:59.446043+00:00"
     }
   ],
   "errors": [],
   "total_cost_usd": 0.42,
-  "started_at": "2026-03-26T12:33:58.233841+00:00",
-  "last_checkpoint_at": "2026-03-26T14:55:27",
+  "started_at": "2026-03-26T18:50:17.990558+00:00",
+  "last_checkpoint_at": "2026-03-26T21:32:05",
   "paused_at": null,
-  "completed_at": "2026-03-26T12:55:27.254769+00:00",
+  "completed_at": "2026-03-26T19:32:05.183873+00:00",
   "round_interval_seconds": 3600,
   "lifetime_rounds": 0,
   "lifetime_bets": 0,
@@ -43,6 +43,6 @@
   "lifetime_cost": 0.0,
   "strategy_version": 1,
   "processed_slugs": [
-    "elon-musk-of-tweets-march-27-april-3-280-299"
+    "will-tisza-respect-and-freedom-party-tisza-win-the-most-seats-in-the-next-hungarian-parliamentary-election"
   ]
 }

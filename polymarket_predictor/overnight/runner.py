@@ -73,7 +73,7 @@ class OvernightRunner:
         from polymarket_predictor.optimizer.strategy import StrategyOptimizer
         from polymarket_predictor.resolver.resolver import MarketResolver
         from polymarket_predictor.ledger.decision_ledger import DecisionLedger
-        from polymarket_predictor.thesis.grouper import MarketGrouper
+        from polymarket_predictor.thesis.grouper import MarketGrouper, MarketGroup
         from polymarket_predictor.thesis.applier import ThesisApplier
 
         # Try to import push_log for live UI updates
@@ -144,7 +144,21 @@ class OvernightRunner:
                     break
 
                 # --- Group markets by thesis ---
-                groups = grouper.group_markets(candidates)
+                # For small runs (1-3 targets), skip grouping to avoid thesis overhead
+                remaining_target = state.total_target - (state.completed + state.failed + state.skipped)
+                if remaining_target <= 3:
+                    # Just pick the best individual markets
+                    groups = [
+                        MarketGroup(
+                            group_id=m.slug,
+                            thesis_question=m.question,
+                            group_type="single",
+                            markets=[m],
+                        )
+                        for m in candidates[:remaining_target]
+                    ]
+                else:
+                    groups = grouper.group_markets(candidates)
 
                 # Log grouping summary
                 multi_tier = [g for g in groups if len(g.markets) > 1]

@@ -247,6 +247,7 @@
                   <span class="bt-row"><span class="bt-key">Confidence</span><span class="bt-val">{{ pos.confidence || '--' }}</span></span>
                   <span class="bt-row"><span class="bt-key">Mode</span><span class="bt-val">{{ pos.mode || 'quick' }}</span></span>
                   <span class="bt-row"><span class="bt-key">Max bet</span><span class="bt-val">{{ pos.max_bet_pct ? (pos.max_bet_pct * 100).toFixed(0) + '%' : '5%' }} of balance</span></span>
+                  <span class="bt-row" v-if="pos.cost_usd > 0 || pos.mode === 'deep'"><span class="bt-key">API Cost</span><span class="bt-val" style="color:#FF4500">{{ pos.cost_usd ? '$' + pos.cost_usd.toFixed(2) : '~$2.70 est' }}</span></span>
                 </span>
               </span>
             </td>
@@ -304,6 +305,7 @@
                   <span class="bt-row"><span class="bt-key">Confidence</span><span class="bt-val">{{ pos.confidence || '--' }}</span></span>
                   <span class="bt-row"><span class="bt-key">Mode</span><span class="bt-val">{{ pos.mode || 'quick' }}</span></span>
                   <span class="bt-row"><span class="bt-key">Max bet</span><span class="bt-val">{{ pos.max_bet_pct ? (pos.max_bet_pct * 100).toFixed(0) + '%' : '5%' }} of balance</span></span>
+                  <span class="bt-row" v-if="pos.cost_usd > 0 || pos.mode === 'deep'"><span class="bt-key">API Cost</span><span class="bt-val" style="color:#FF4500">{{ pos.cost_usd ? '$' + pos.cost_usd.toFixed(2) : '~$2.70 est' }}</span></span>
                 </span>
               </span>
             </td>
