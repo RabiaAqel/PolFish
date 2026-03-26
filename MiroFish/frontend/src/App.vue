@@ -13,6 +13,7 @@
           <router-link to="/">Predictor</router-link>
           <router-link to="/paper-trading">Paper Trading</router-link>
           <router-link to="/decisions">Decision Log</router-link>
+          <router-link to="/knowledge">Knowledge</router-link>
           <router-link to="/backtest">Backtest</router-link>
           <router-link to="/how-it-works">How It Works</router-link>
           <router-link to="/settings">Settings</router-link>

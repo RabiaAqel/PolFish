@@ -63,6 +63,11 @@ const routes = [
     component: () => import('../views/DecisionLogView.vue')
   },
   {
+    path: '/knowledge',
+    name: 'KnowledgeBase',
+    component: () => import('../views/KnowledgeBaseView.vue')
+  },
+  {
     path: '/backtest',
     name: 'Backtest',
     component: () => import('../views/BacktestView.vue')

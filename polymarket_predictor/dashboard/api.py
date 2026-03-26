@@ -1658,3 +1658,77 @@ def methods_weights():
             "quant_weight": tracker.quant_weight,
         },
     })
+
+
+# ---------------------------------------------------------------------------
+# Knowledge Base endpoints
+# ---------------------------------------------------------------------------
+
+@dashboard_bp.route("/knowledge/entries", methods=["GET"])
+def knowledge_entries():
+    """Get all context store entries with optional filtering."""
+    from polymarket_predictor.knowledge.context_store import ContextStore
+    store = ContextStore()
+
+    category = request.args.get("category")
+    limit = int(request.args.get("limit", 100))
+
+    if category:
+        entries = store.get_by_category(category, limit=limit)
+    else:
+        entries = store._load_all()[-limit:]
+
+    return jsonify({"success": True, "data": {"entries": entries, "total": len(entries)}})
+
+
+@dashboard_bp.route("/knowledge/accuracy", methods=["GET"])
+def knowledge_accuracy():
+    """Get prediction accuracy by category."""
+    from polymarket_predictor.knowledge.context_store import ContextStore
+    store = ContextStore()
+    return jsonify({"success": True, "data": store.get_accuracy_by_category()})
+
+
+@dashboard_bp.route("/knowledge/related", methods=["GET"])
+def knowledge_related():
+    """Find related market context."""
+    from polymarket_predictor.knowledge.context_store import ContextStore
+    store = ContextStore()
+    query = request.args.get("q", "")
+    limit = int(request.args.get("limit", 10))
+    entries = store.get_related(query, limit=limit)
+    return jsonify({"success": True, "data": {"entries": entries, "query": query}})
+
+
+@dashboard_bp.route("/knowledge/stats", methods=["GET"])
+def knowledge_stats():
+    """Get knowledge base statistics."""
+    from polymarket_predictor.knowledge.context_store import ContextStore
+    store = ContextStore()
+    all_entries = store._load_all()
+
+    categories = {}
+    for e in all_entries:
+        cat = e.get("category", "other")
+        if cat not in categories:
+            categories[cat] = 0
+        categories[cat] += 1
+
+    outcomes = {"pending": 0, "correct": 0, "incorrect": 0}
+    for e in all_entries:
+        if e.get("was_correct") is True:
+            outcomes["correct"] += 1
+        elif e.get("was_correct") is False:
+            outcomes["incorrect"] += 1
+        else:
+            outcomes["pending"] += 1
+
+    return jsonify({
+        "success": True,
+        "data": {
+            "total_entries": len(all_entries),
+            "categories": categories,
+            "outcomes": outcomes,
+            "accuracy": store.get_accuracy_by_category(),
+        },
+    })
