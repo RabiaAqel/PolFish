@@ -269,7 +269,7 @@ class SimulationAnalyzer:
                 agent.observed_sentiment = sum(p["sentiment"] for p in agent_posts) / len(agent_posts)
 
                 # Temporal analysis for this agent
-                sorted_posts = sorted(agent_posts, key=lambda p: str(p["round"]))
+                sorted_posts = sorted(agent_posts, key=lambda p: (float(p["round"]) if isinstance(p["round"], (int, float)) else 0))
                 third = max(1, len(sorted_posts) // 3)
                 early = sorted_posts[:third]
                 late = sorted_posts[-third:]
@@ -306,7 +306,7 @@ class SimulationAnalyzer:
         analysis.expert_sentiment = sum(expert_sentiments) / len(expert_sentiments) if expert_sentiments else 0.5
 
         # === METRIC 4: Temporal Momentum ===
-        sorted_all = sorted(post_sentiments, key=lambda p: str(p["round"]))
+        sorted_all = sorted(post_sentiments, key=lambda p: (float(p["round"]) if isinstance(p["round"], (int, float)) else 0))
         if len(sorted_all) >= 4:
             half = len(sorted_all) // 2
             early_half = sorted_all[:half]

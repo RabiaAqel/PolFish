@@ -115,11 +115,11 @@ class TestExtractArticleText:
         assert "Second paragraph" in text
 
     def test_truncation(self):
-        # Build HTML with >2000 chars of text
-        long_para = "A" * 3000
+        # Build HTML with >4000 chars of text
+        long_para = "A" * 5000
         html = f"<article><p>{long_para}</p></article>"
         text = _extract_article_text(html)
-        assert len(text) <= 2000
+        assert len(text) <= 4000
 
     def test_empty_html(self):
         text = _extract_article_text("")
@@ -234,7 +234,7 @@ class TestNewsAggregatorSearchArticles:
 
     @pytest.mark.asyncio
     async def test_article_text_truncated_to_max(self, ddgs_results):
-        """Articles longer than 2000 chars are truncated."""
+        """Articles longer than 4000 chars are truncated."""
         aggregator = NewsAggregator()
 
         mock_ddgs_instance = MagicMock()
@@ -248,5 +248,5 @@ class TestNewsAggregatorSearchArticles:
             with patch.object(aggregator, "_fetch_article", new_callable=AsyncMock, return_value=long_text):
                 articles = await aggregator.search_articles("bitcoin", max_results=1)
 
-        assert len(articles[0].text) <= 2000
+        assert len(articles[0].text) <= 4000
         await aggregator.close()
