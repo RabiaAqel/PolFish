@@ -73,6 +73,7 @@ curl -X POST http://localhost:5001/api/polymarket/predict/deep \
 | [Cost Optimization](COST_OPTIMIZATION.md) | Token usage, model pricing, preset comparisons, ROI analysis |
 | [Troubleshooting](TROUBLESHOOTING.md) | Common errors and their fixes |
 | [Monte Carlo Research](MONTE_CARLO_RESEARCH.md) | 54K-portfolio simulation study: accuracy thresholds, Kelly tuning, and break-even analysis |
+| [Prediction Pipeline Research](PREDICTION_PIPELINE_RESEARCH.md) | Pipeline weakness analysis: seed quality, agent diversity, simulation depth, and the prose-to-prediction gap |
 
 ---
 
