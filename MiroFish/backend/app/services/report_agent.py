@@ -1234,38 +1234,52 @@ class ReportAgent:
         """
         previous_content = "\n\n".join(previous_sections[-3:])  # Last 3 sections for context
 
+        # Extract market odds from simulation_requirement or context
+        # (The report doesn't always mention market odds, so we embed them)
+        market_info = getattr(self, '_market_odds_info', '')
+
         system_prompt = f"""\
-You are a prediction market analyst. You have read a detailed simulation report about the following question:
+You are a CONTRARIAN prediction market analyst. Your job is to find where the market is WRONG.
 
-"{self.simulation_requirement}"
+Question: "{self.simulation_requirement}"
+{market_info}
 
-Based on the report sections you've read, you must now provide your FINAL PREDICTION VERDICT.
+Based on the simulation report, provide your FINAL PREDICTION VERDICT.
 
 CRITICAL RULES:
-1. You MUST provide a specific numerical probability — NOT a vague statement like "likely" or "possible"
-2. The probability must reflect the ACTUAL simulation findings, not a generic guess
-3. Consider: What did the majority of agents conclude? What evidence emerged? What risks were identified?
-4. Your probability should be CALIBRATED — if the evidence is mixed, say 45-55%. If it's strongly one-sided, say 15% or 85%.
-5. DO NOT default to 50%, 65%, or 35% — these are lazy defaults. Think carefully.
-6. Consider the current market odds and whether the simulation revealed something the market may have missed.
+1. You MUST provide a specific numerical probability — NOT a vague statement
+2. The probability must reflect the ACTUAL simulation findings
+3. IMPORTANT: Your prediction CAN and SHOULD be LOWER than the market odds if the simulation evidence suggests the market is overpricing YES
+4. If the simulation found mostly negative evidence, risks, or skepticism among agents, your probability should be LOWER than the market
+5. If the simulation found strong positive evidence and consensus, your probability should be HIGHER than the market
+6. If evidence is mixed or weak, stay CLOSE to the market odds (within ±5%)
+7. DO NOT have a bias toward YES. Markets can be overpriced OR underpriced.
+8. DO NOT default to 50%, 65%, or 35% — think about what the simulation ACTUALLY found
+9. Think about BASE RATES: most bold predictions don't happen, most ceasefires fail, most prices don't hit extreme targets
 
 OUTPUT FORMAT (you MUST follow this exactly):
 - Probability of YES outcome: [your number]%
 - Confidence: [high/medium/low]
-- Direction: [YES/NO/NEUTRAL]
-- Key evidence: [one sentence summarizing the strongest evidence]
-- Contrarian view: [one sentence about what could go wrong]"""
+- Direction: [ABOVE_MARKET/BELOW_MARKET/NEUTRAL]
+- Key evidence for YES: [one sentence]
+- Key evidence for NO: [one sentence]
+- Contrarian view: [what the market might be missing]"""
 
         user_prompt = f"""\
-Here is the simulation analysis so far:
+Here is the simulation analysis:
 
 {previous_content}
 
-Now provide your Prediction Verdict. Remember:
-- Be SPECIFIC with the probability number (e.g., 23.5%, 67%, 41%)
-- Base it on the ACTUAL simulation findings above
-- Do NOT use round numbers like 50%, 65%, 25% unless the evidence truly points there
-- Consider both the bull and bear case from the simulation"""
+Now provide your Prediction Verdict.
+
+IMPORTANT CALIBRATION CHECK before you answer:
+- If this is about something unlikely (price hitting extreme target, ceasefire, rare event), the base rate is LOW (10-30%)
+- If this is about something that usually happens (incumbent winning, price staying in range), the base rate is HIGH (60-80%)
+- The market has MANY smart participants who have already considered public information
+- Your edge should come from the SIMULATION FINDINGS, not from general optimism
+- It is PERFECTLY FINE to predict LOWER than the current market odds if the evidence supports it
+
+Be HONEST, not optimistic. A prediction of 15% or 8% is valid if that's what the evidence shows."""
 
         try:
             content = self.llm.chat(

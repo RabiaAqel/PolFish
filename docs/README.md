@@ -72,6 +72,7 @@ curl -X POST http://localhost:5001/api/polymarket/predict/deep \
 | [API Reference](API_REFERENCE.md) | Every HTTP endpoint with request/response examples |
 | [Cost Optimization](COST_OPTIMIZATION.md) | Token usage, model pricing, preset comparisons, ROI analysis |
 | [Troubleshooting](TROUBLESHOOTING.md) | Common errors and their fixes |
+| [Monte Carlo Research](MONTE_CARLO_RESEARCH.md) | 54K-portfolio simulation study: accuracy thresholds, Kelly tuning, and break-even analysis |
 
 ---
 

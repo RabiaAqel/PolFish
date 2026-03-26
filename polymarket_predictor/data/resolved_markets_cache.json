@@ -1,0 +1,762 @@
+[
+  {
+    "slug": "nba-will-the-mavericks-beat-the-grizzlies-by-more-than-5pt5-points-in-their-december-4-matchup",
+    "question": "NBA: Will the Mavericks beat the Grizzlies by more than 5.5 points in their December 4 matchup?",
+    "volume": 1335.045385,
+    "pre_resolution_odds": 0.368,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "nfl-will-the-falcons-beat-the-panthers-by-more-than-3pt5-points-in-their-october-31st-matchup",
+    "question": "NFL: Will the Falcons beat the Panthers by more than 3.5 points in their October 31st matchup?",
+    "volume": 5332.423556,
+    "pre_resolution_odds": 0.306,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "in-game-trading-will-the-49ers-beat-the-packers-by-more-than-3pt5-points-in-their-week-three-matchup",
+    "question": "(In-Game Trading) Will the 49ers beat the Packers by more than 3.5 points in their week three matchup?",
+    "volume": 139186.362106,
+    "pre_resolution_odds": 0.138,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "2022-norway-chess-will-magnus-carlsen-lose-any-game",
+    "question": "2022 Norway Chess: Will Magnus Carlsen lose any game?",
+    "volume": 89615.677225,
+    "pre_resolution_odds": 0.579,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "nba-will-the-heat-beat-the-wizards-by-more-than-7pt5-points-in-their-november-18th-matchup",
+    "question": "NBA: Will the Heat beat the Wizards by more than 7.5 points in their November 18th matchup?",
+    "volume": 7793.964103,
+    "pre_resolution_odds": 0.519,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "nfl-will-the-jaguars-beat-the-texans-by-more-than-3pt5-points-in-their-december-19-matchup",
+    "question": "NFL: Will the Jaguars beat the Texans by more than 3.5 points in their December 19 matchup?",
+    "volume": 1255.634123,
+    "pre_resolution_odds": 0.461,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "nba-will-the-clippers-beat-the-celtics-by-more-than-2pt5-points-in-their-december-8-matchup",
+    "question": "NBA: Will the Clippers beat the Celtics by more than 2.5 points in their December 8 matchup?",
+    "volume": 3552.121376,
+    "pre_resolution_odds": 0.656,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "nfl-will-the-chiefs-beat-the-bengals-by-more-than-3pt5-points-in-their-january-2-matchup",
+    "question": "NFL: Will the Chiefs beat the Bengals by more than 3.5 points in their January 2 matchup?",
+    "volume": 20962.32561,
+    "pre_resolution_odds": 0.416,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "will-lightyear-gross-more-than-90-million-domestically-in-its-opening-weekend",
+    "question": "Will 'Lightyear' gross more than $90 million domestically on its opening weekend?",
+    "volume": 8676.659101,
+    "pre_resolution_odds": 0.323,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "nfl-will-the-cardinals-beat-the-rams-by-more-than-2pt5-points-in-their-december-13-matchup",
+    "question": "NFL: Will the Cardinals beat the Rams by more than 2.5 points in their December 13 matchup?",
+    "volume": 36110.005484,
+    "pre_resolution_odds": 0.388,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "will-the-floor-price-of-we-are-all-going-to-die-be-above-1-eth-on-june-14",
+    "question": "Will the floor price of 'We Are All Going to Die' be above 1 ETH on June 14?",
+    "volume": 3722.43965,
+    "pre_resolution_odds": 0.218,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "will-the-spurs-or-the-grizzlies-win-their-nba-play-in-tournament-matchup",
+    "question": "Will the Spurs or the Grizzlies win their NBA play-in tournament matchup?",
+    "volume": 66258.86449,
+    "pre_resolution_odds": 0.221,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "will-any-belarusian-bank-be-disconnected-from-swift-by-april-30-2022",
+    "question": "Will any Belarusian bank be disconnected from SWIFT by April 30, 2022?",
+    "volume": 99554.189894,
+    "pre_resolution_odds": 0.699,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "will-nato-declare-a-no-fly-zone-over-any-ukrainian-territory-by-april-30-2022",
+    "question": "Will NATO declare a No Fly-Zone over any Ukrainian territory by April 30, 2022?",
+    "volume": 24081.217104,
+    "pre_resolution_odds": 0.187,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "will-natural-gas-close-above-9-on-june-17-2022",
+    "question": "Will natural gas close above $9 on June 17, 2022?",
+    "volume": 41494.216853,
+    "pre_resolution_odds": 0.158,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "will-the-ftx-crypto-cup-finals-between-magnus-carlsen-and-wesley-so-go-to-play-offs",
+    "question": "Will the FTX Crypto Cup Finals between Magnus Carlsen and Wesley So go to play-offs?",
+    "volume": 6134.434617,
+    "pre_resolution_odds": 0.405,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "will-the-czech-republic-or-denmark-qualify-for-the-euro-2020-semifinals",
+    "question": "Will the Czech Republic or Denmark qualify for the Euro 2020 Semifinals?",
+    "volume": 2649.056137,
+    "pre_resolution_odds": 0.276,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "will-lost-ark-be-in-the-top-5-most-played-games-on-steam-on-april-15-2022",
+    "question": "Will Lost Ark be in the top 5 most played games on Steam on April 15, 2022?",
+    "volume": 9266.403901,
+    "pre_resolution_odds": 0.725,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "2022-nba-playoffs-round-2-who-will-win-celtics-vs-bucks",
+    "question": "2022 NBA Playoffs, Round 2: Who will win Celtics vs. Bucks?",
+    "volume": 2889.078286,
+    "pre_resolution_odds": 0.594,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "will-surojit-chatterjee-or-matt-huang-win-in-their-cryptochamps-finals-chess-match",
+    "question": "Will Surojit Chatterjee or Matt Huang win in their CryptoChamps Finals chess match?",
+    "volume": 4763.452198,
+    "pre_resolution_odds": 0.51,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "ncaa-finals-who-will-win-unc-vs-kansas-scheduled-for-apr-4-9pt20-pm-et",
+    "question": "NCAA Finals: Who will win UNC vs. Kansas, scheduled for Apr 4 (9.20 PM ET)?",
+    "volume": 65749.718265,
+    "pre_resolution_odds": 0.15,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "chess-will-the-van-t-kruijs-opening-1-e3-be-played-at-2021-fide-world-rapid-championship-open",
+    "question": "Chess: Will the Van't Kruijs Opening (1. e3) be played at 2021 FIDE World Rapid Championship Open?",
+    "volume": 2068.428711,
+    "pre_resolution_odds": 0.666,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "nba-will-the-lakers-beat-the-grizzlies-by-more-than-2pt5-points-in-their-december-9-matchup",
+    "question": "NBA: Will the Lakers beat the Grizzlies by more than 2.5 points in their December 9 matchup?",
+    "volume": 4214.081998,
+    "pre_resolution_odds": 0.566,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "who-will-win-the-bucks-v-heat-game-on-october-21st",
+    "question": "(In-Game Trading) Who will win the Bucks v. Heat game on October 21st?",
+    "volume": 25952.051751,
+    "pre_resolution_odds": 0.406,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "grammys-2022-will-lady-gagas-and-tony-bennets-i-get-a-kick-out-of-you-win-record-of-the-year",
+    "question": "GRAMMYs 2022: Will Lady Gaga's and Tony Bennet's \"I Get a Kick Out of You\" win Record of the Year?",
+    "volume": 10155.839285,
+    "pre_resolution_odds": 0.206,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "will-solana-sol-hit-35-or-50-first",
+    "question": "Will Solana ($SOL) hit $35 or $50 first?",
+    "volume": 3060.73219,
+    "pre_resolution_odds": 0.563,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "will-nate-wyatt-ko-tko-or-retire-ddg",
+    "question": "Will Nate Wyatt KO, TKO, or retire DDG?",
+    "volume": 4072.061377,
+    "pre_resolution_odds": 0.564,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "nba-will-the-bucks-beat-the-magic-by-more-than-13pt5-points-in-their-december-28-matchup",
+    "question": "NBA: Will the Bucks beat the Magic by more than 13.5 points in their December 28 matchup?",
+    "volume": 3725.938891,
+    "pre_resolution_odds": 0.788,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "will-synthetix-capture-more-single-day-fees-than-bitcoin-by-september-8-from-kain-pt-eth",
+    "question": "[From kain.eth] Will Synthetix capture more single day fees than Bitcoin by September 8?",
+    "volume": 7105.605574,
+    "pre_resolution_odds": 0.574,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "nba-will-the-bulls-beat-the-pacers-by-more-than-6pt5-points-in-their-december-26-matchup",
+    "question": "NBA: Will the Bulls beat the Pacers by more than 6.5 points in their December 26 matchup?",
+    "volume": 1753.652649,
+    "pre_resolution_odds": 0.663,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "will-surojit-chatterjee-or-tekin-salimi-win-in-their-cryptochamps-semifinals-chess-match",
+    "question": "Will Surojit Chatterjee or Tekin Salimi win in their CryptoChamps Semifinals chess match?",
+    "volume": 9578.218633,
+    "pre_resolution_odds": 0.408,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "will-annual-inflation-in-the-european-union-be-59-or-more-in-february",
+    "question": "Will annual inflation in the European Union be 5.9% or more in February?",
+    "volume": 7532.747053,
+    "pre_resolution_odds": 0.672,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "will-joe-biden-s-approval-rating-be-54-or-higher-on-may-19-2021",
+    "question": "Will Joe Biden's approval rating be 54% or higher on May 19, 2021?",
+    "volume": 18298.399976,
+    "pre_resolution_odds": 0.619,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "nhl-will-the-maple-leafs-beat-the-hurricanes-by-more-than-15-goals-in-their-february-7-matchup-7-pm-et",
+    "question": "NHL: Will the Maple Leafs beat the Hurricanes by more than 1.5 goals in their February 7 matchup (7 PM ET)?",
+    "volume": 1049.189404,
+    "pre_resolution_odds": 0.366,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "who-will-win-suns-v-clippers-western-conference-finals-game-6",
+    "question": "Who will win Suns v. Clippers: Western Conference Finals Game 6?",
+    "volume": 2596.773187,
+    "pre_resolution_odds": 0.581,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "nba-will-the-pacers-beat-the-spurs-by-more-than-3pt5-points-in-their-november-1st-matchup",
+    "question": "NBA: Will the Pacers beat the Spurs by more than 3.5 points in their November 1st matchup?",
+    "volume": 1489.473947,
+    "pre_resolution_odds": 0.573,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "nba-will-the-heat-beat-the-thunder-by-more-than-9pt5-points-in-their-november-15th-matchup",
+    "question": "NBA: Will the Heat beat the Thunder by more than 9.5 points in their November 15th matchup?",
+    "volume": 11627.957121,
+    "pre_resolution_odds": 0.377,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "nba-will-the-nets-beat-the-suns-by-more-than-1pt5-points-in-their-november-27th-matchup",
+    "question": "NBA: Will the Nets beat the Suns by more than 1.5 points in their November 27th matchup?",
+    "volume": 4499.929442,
+    "pre_resolution_odds": 0.443,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "which-cryptocurrency-will-have-higher-market-cap-on-november-12th-xrp-or-polkadot",
+    "question": "Which cryptocurrency will have higher market cap on November 12th: XRP or Polkadot?",
+    "volume": 16875.575067,
+    "pre_resolution_odds": 0.613,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "in-game-trading-will-the-raiders-or-the-steelers-win-their-nfl-week-2-matchup-1",
+    "question": "(In-Game Trading) Will the Raiders or the Steelers win their NFL week 2 matchup?",
+    "volume": 10895.177519,
+    "pre_resolution_odds": 0.614,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "will-the-raiders-beat-the-dolphins-by-more-than-3pt5-points-in-their-week-three-matchup",
+    "question": "Will the Raiders beat the Dolphins by more than 3.5 points in their week three matchup?",
+    "volume": 7922.344425,
+    "pre_resolution_odds": 0.471,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "will-bitcoin-btc-hit-20000-or-less-by-june-30",
+    "question": "Will Bitcoin ($BTC) hit $20,000 or less by June 30?",
+    "volume": 19977.919314,
+    "pre_resolution_odds": 0.766,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "will-f9-gross-more-than-62m-domestically-on-opening-weekend",
+    "question": "Will F9 gross more than $62M domestically on opening weekend?",
+    "volume": 7288.343557,
+    "pre_resolution_odds": 0.635,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "will-hikaru-nakamura-win-the-2021-st-louis-rapid-and-blitz-chess-tournament",
+    "question": "Will Hikaru Nakamura win the 2021 St. Louis Rapid and Blitz Chess Tournament?",
+    "volume": 23657.016178,
+    "pre_resolution_odds": 0.28,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "will-the-7-day-covid-19-case-average-on-january-8th-be-higher-than-it-was-a-week-earlier",
+    "question": "Will the 7-day COVID-19 case average on January 8th be higher than it was a week earlier?",
+    "volume": 9030.353961,
+    "pre_resolution_odds": 0.262,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "nba-will-the-heat-beat-the-magic-by-more-than-4pt5-points-in-their-december-17-matchup",
+    "question": "NBA: Will the Heat beat the Magic by more than 4.5 points in their December 17 matchup?",
+    "volume": 2425.891665,
+    "pre_resolution_odds": 0.397,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "nba-will-the-76ers-beat-the-hornets-by-more-than-6pt5-points-in-their-december-6-matchup",
+    "question": "NBA: Will the 76ers beat the Hornets by more than 6.5 points in their December 6 matchup?",
+    "volume": 5694.631147,
+    "pre_resolution_odds": 0.135,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "will-natural-gas-close-above-8-on-may-20-2022",
+    "question": "Will natural gas close above $8 on May 20, 2022?",
+    "volume": 53723.464602,
+    "pre_resolution_odds": 0.339,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "will-the-price-of-wolf-game-wool-wool-be-above-10c-at-noon-on-december-1-2021",
+    "question": "Will the price of Wolf Game Wool ($WOOL) be above 10 cents at noon on December 1st?",
+    "volume": 52009.419256,
+    "pre_resolution_odds": 0.829,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "will-eth-be-above-1200-on-july-15",
+    "question": "Will $ETH be above $1,200 on July 15?",
+    "volume": 172953.519228,
+    "pre_resolution_odds": 0.709,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "will-croatia-or-england-win-their-euro-2020-match",
+    "question": "Will Croatia or England win their Euro 2020 match?",
+    "volume": 3062.313945,
+    "pre_resolution_odds": 0.242,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "will-there-be-more-than-120-million-confirmed-covid-19-cases-globally-by-april-1-2021",
+    "question": "Will there be more than 120 million confirmed COVID-19 cases globally by April 1, 2021?",
+    "volume": 12169.861078,
+    "pre_resolution_odds": 0.27,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "will-the-floor-price-of-chain-runners-be-above-1pt25-eth-on-december-2",
+    "question": "Will the floor price of Chain Runners be above 1.25 ETH on December 2?",
+    "volume": 21861.874826,
+    "pre_resolution_odds": 0.391,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "will-annual-inflation-in-the-european-union-be-8pt0-or-more-in-april",
+    "question": "Will annual inflation in the European Union be 8.0% or more in April?",
+    "volume": 9486.411872,
+    "pre_resolution_odds": 0.717,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "nba-will-the-suns-beat-the-trail-blazers-by-more-than-6pt5-points-in-their-november-10th-matchup",
+    "question": "NBA: Will the Suns beat the Trail Blazers by more than 6.5 points in their November 10th matchup?",
+    "volume": 10569.139705,
+    "pre_resolution_odds": 0.343,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "will-lewis-hamilton-finish-ahead-of-max-verstappen-in-the-saudi-arabian-gran-prix",
+    "question": "Will Lewis Hamilton finish ahead of Max Verstappen in the Saudi Arabian Gran Prix?",
+    "volume": 5232.760459,
+    "pre_resolution_odds": 0.469,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "will-eth-hit-1000-or-2000-first-1",
+    "question": "Will $ETH hit $1,000 or $2,000 first? ",
+    "volume": 7971.676815,
+    "pre_resolution_odds": 0.642,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "will-edward-hoppers-two-puritans-lot-39c-sell-for-more-than-15m-at-christies-on-november-11",
+    "question": "Will Edward Hopper's \u201cTwo Puritans\u201d (Lot 39C) sell for more than $15m at Christie\u2019s on November 11?",
+    "volume": 366.98783,
+    "pre_resolution_odds": 0.356,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "nba-will-the-hornets-beat-the-cavaliers-by-more-than-4pt5-points-in-their-november-1st-matchup",
+    "question": "NBA: Will the Hornets beat the Cavaliers by more than 4.5 points in their November 1st matchup?",
+    "volume": 6356.131966,
+    "pre_resolution_odds": 0.383,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "will-the-moscow-stock-exchange-market-open-for-stock-trading-by-march-11-2022",
+    "question": "Will the Moscow Stock Exchange market (MOEX) open for trading by March 11, 2022?",
+    "volume": 4031.637648,
+    "pre_resolution_odds": 0.104,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "will-the-sum-of-goals-in-jamaica-v-usa-soccer-matchup-be-an-even-or-odd-number-1",
+    "question": "Will the sum of goals in Jamaica v. USA soccer matchup be an even or odd number?",
+    "volume": 7705.764731,
+    "pre_resolution_odds": 0.439,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "will-183-million-people-have-received-a-dose-of-an-approved-covid-19-vaccine-in-the-us-by-july-15-2021",
+    "question": "Will 183 million people have received a dose of an approved COVID-19 vaccine in the US by July 15, 2021?",
+    "volume": 45220.686286,
+    "pre_resolution_odds": 0.752,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "will-opensea-launch-a-token-by-end-of-year",
+    "question": "Will OpenSea launch a token by the end of 2021?",
+    "volume": 147538.678299,
+    "pre_resolution_odds": 0.276,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "how-much-will-in-the-heights-gross-domestically-on-opening-weekend",
+    "question": "How much will \u201cIn the Heights\u201d gross domestically on opening weekend?",
+    "volume": 8837.745119,
+    "pre_resolution_odds": 0.383,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "will-joe-bidens-fivethirtyeight-approval-rating-be-41pt5-or-higher-on-may-28",
+    "question": "Will Joe Biden's FiveThirtyEight approval rating be 41.5% or higher on May 28?",
+    "volume": 19308.774032,
+    "pre_resolution_odds": 0.251,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "will-italy-win-the-2020-euros",
+    "question": "Will Italy win the Euro 2020?",
+    "volume": 43805.597486,
+    "pre_resolution_odds": 0.499,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "will-any-of-the-first-10-picks-in-the-nfl-draft-be-traded-during-the-draft",
+    "question": "Will any of the first 10 picks in the NFL draft be traded during the draft?",
+    "volume": 5442.836758,
+    "pre_resolution_odds": 0.847,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "formula-1-who-will-finish-ahead-at-the-2022-canadian-grand-prix-max-verstappen-or-charles-leclerc",
+    "question": "Formula 1: Who will finish ahead at the 2022 Canadian Grand Prix, Max Verstappen or Charles Leclerc?",
+    "volume": 1827.866129,
+    "pre_resolution_odds": 0.371,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "which-cryptocurrency-will-have-higher-market-cap-on-december-9th-cardano-ada-or-solana-sol",
+    "question": "Which cryptocurrency will have higher market cap on December 9th: Cardano ($ADA) or Solana ($SOL)?",
+    "volume": 4498.331961,
+    "pre_resolution_odds": 0.48,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "will-ukraine-qualify-to-the-2022-fifa-world-cup",
+    "question": "Will Ukraine qualify for the 2022 FIFA World Cup?",
+    "volume": 4766.880339,
+    "pre_resolution_odds": 0.276,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "nba-will-the-sum-of-points-in-clippers-v-celtics-be-an-even-or-an-odd-number",
+    "question": "NBA: Will the sum of points in Clippers v Celtics be an even or an odd number?",
+    "volume": 1025.637337,
+    "pre_resolution_odds": 0.606,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "nba-will-the-cavaliers-beat-the-pistons-by-more-than-5pt5-points-in-their-november-12th-matchup",
+    "question": "NBA: Will the Cavaliers beat the Pistons by more than 5.5 points in their November 12th matchup?",
+    "volume": 6356.814468,
+    "pre_resolution_odds": 0.382,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "nfl-will-the-cowboys-beat-the-washington-by-more-than-10pt5-points-in-their-december-26-matchup",
+    "question": "NFL: Will the Cowboys beat the Washington by more than 10.5 points in their December 26 matchup?",
+    "volume": 5017.348769,
+    "pre_resolution_odds": 0.623,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "nhl-will-the-hurricanes-beat-the-senators-by-more-than-1pt5-points-in-their-december-2-matchup",
+    "question": "NHL: Will the Hurricanes beat the Senators by more than 1.5 points in their December 2 matchup?",
+    "volume": 1302.723416,
+    "pre_resolution_odds": 0.546,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "will-the-batman-get-90-or-higher-tomatometer-score",
+    "question": "Will 'The Batman' get 90% or higher Tomatometer Score?",
+    "volume": 21173.666268,
+    "pre_resolution_odds": 0.543,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "will-the-7-day-average-covid-19-case-count-in-the-us-be-less-than-15000-for-the-day-of-july-22",
+    "question": "Will the 7-day average COVID-19 case count in the US be less than 15,000 for the day of July 22? ",
+    "volume": 37625.239888,
+    "pre_resolution_odds": 0.547,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "formula-1-who-will-finish-ahead-at-the-saudi-arabia-grand-prix-max-verstappen-or-charles-leclerc",
+    "question": "Formula 1: Who will finish ahead at the Saudi Arabia Grand Prix: Max Verstappen or Charles Leclerc?",
+    "volume": 5694.090101,
+    "pre_resolution_odds": 0.776,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "nfl-will-the-eagles-beat-the-lions-by-more-than-3pt5-points-in-their-october-31st-matchup",
+    "question": "NFL: Will the Eagles beat the Lions by more than 3.5 points in their October 31st matchup?",
+    "volume": 3773.739407,
+    "pre_resolution_odds": 0.437,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "will-team-liquid-or-100-thieves-win-their-lcs-playoffs-matchup-on-august-21-2021",
+    "question": "Will Team Liquid or 100 Thieves win their LCS Playoffs matchup on August 21, 2021?",
+    "volume": 11942.554823,
+    "pre_resolution_odds": 0.541,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "nfl-will-the-steelers-beat-the-lions-by-more-than-8pt5-points-in-their-november-14th-matchup",
+    "question": "NFL: Will the Steelers beat the Lions by more than 8.5 points in their November 14th matchup?",
+    "volume": 5643.828039,
+    "pre_resolution_odds": 0.432,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "will-more-than-210-million-people-travel-through-a-tsa-checkpoint-on-any-day-between-jan-1-and-jan-11",
+    "question": "Will more than 2.10 million people travel through a TSA checkpoint on any day between Jan. 1 and Jan. 11?",
+    "volume": 75111.196078,
+    "pre_resolution_odds": 0.109,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "will-daniil-medvedev-play-in-the-2022-french-open",
+    "question": "Will Daniil Medvedev play in the 2022 French Open?",
+    "volume": 39260.092169,
+    "pre_resolution_odds": 0.256,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "will-130-million-people-have-received-a-dose-of-an-approved-covid-19-vaccine-in-the-us-by-april-15-2021",
+    "question": "Will 130 million people have received a dose of an approved COVID-19 vaccine in the US by April 15, 2021?",
+    "volume": 2802.891114,
+    "pre_resolution_odds": 0.238,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "will-katie-ledecky-win-3-or-more-gold-medals-at-the-2020-olympics",
+    "question": "Will Katie Ledecky win 3 or more gold medals at the 2020 Olympics?",
+    "volume": 23750.923034,
+    "pre_resolution_odds": 0.105,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "in-game-trading-who-will-win-suns-v-clippers-finals-game-3",
+    "question": "(In-Game Trading) Who will win Suns v. Clippers: Finals Game 3?",
+    "volume": 21804.191271,
+    "pre_resolution_odds": 0.194,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "nba-will-the-pacers-beat-the-pelicans-by-more-than-7pt5-points-in-their-november-20th-matchup",
+    "question": "NBA: Will the Pacers beat the Pelicans by more than 7.5 points in their November 20th matchup?",
+    "volume": 5134.356017,
+    "pre_resolution_odds": 0.255,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "will-more-than-3pt30-million-people-travel-via-new-york-city-subway-on-any-day-before-november-19",
+    "question": "Will more than 3.30 million people travel via New York City subway on any day before November 19?",
+    "volume": 2291.950442,
+    "pre_resolution_odds": 0.283,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "will-arca-ape-win-the-cryptog-charity-poker-tournament",
+    "question": "Will Arca Ape win the CryptOG Charity Poker Tournament?",
+    "volume": 2882.320746,
+    "pre_resolution_odds": 0.353,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "nfl-will-the-rams-beat-the-packers-by-more-than-2pt5-points-in-their-november-28th-matchup",
+    "question": "NFL: Will the Rams beat the Packers by more than 2.5 points in their November 28th matchup?",
+    "volume": 6239.934973,
+    "pre_resolution_odds": 0.316,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "will-wayne-thiebauds-winding-river-sell-for-more-than-8m-at-phillips",
+    "question": "Will Wayne Thiebaud\u2019s \u201cWinding River\u201d sell for more than $8M at Phillips?",
+    "volume": 2446.293153,
+    "pre_resolution_odds": 0.688,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "in-game-trading-will-washington-beat-the-atlanta-falcons-by-over-15-points-in-their-week-four-matchup",
+    "question": "(In-Game Trading) Will Washington beat the Atlanta Falcons by over 1.5 points in their week four matchup?",
+    "volume": 119910.544019,
+    "pre_resolution_odds": 0.773,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "will-japan-or-the-usa-win-the-baseball-gold-medal-at-the-2020-olympics",
+    "question": "Will Japan or the USA win gold in Baseball at the 2020 Olympics? ",
+    "volume": 1350.263863,
+    "pre_resolution_odds": 0.264,
+    "resolved_yes": true,
+    "category": "All"
+  },
+  {
+    "slug": "will-the-wormhole-hacker-return-69-or-more-of-the-exploited-funds-by-february-9th",
+    "question": "Will the Wormhole hacker return 69% or more of the exploited funds by February 9th?",
+    "volume": 36234.7898,
+    "pre_resolution_odds": 0.195,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "will-fully-vaccinated-non-essential-canadian-travelers-be-permitted-to-cross-into-the-us-through-the-land-borders-by-september-1-2021",
+    "question": "Will fully vaccinated non-essential Canadian travelers be permitted to cross into the US through the land borders by September 1, 2021?",
+    "volume": 17526.546755,
+    "pre_resolution_odds": 0.433,
+    "resolved_yes": false,
+    "category": "All"
+  },
+  {
+    "slug": "will-188-million-people-have-received-a-dose-of-an-approved-covid-19-vaccine-in-the-us-by-august-1",
+    "question": "Will 188 million people have received a dose of an approved COVID-19 vaccine in the US by August 1?",
+    "volume": 56322.759703,
+    "pre_resolution_odds": 0.498,
+    "resolved_yes": true,
+    "category": "All"
+  }
+]

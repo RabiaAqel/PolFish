@@ -219,11 +219,20 @@ class OvernightRunner:
                 seed_path = gen.generate_seed(market, articles, variant="balanced")
 
                 # Run full MiroFish pipeline
+                # Include market odds in the requirement so the report agent
+                # knows what the market thinks and can disagree
+                enhanced_requirement = (
+                    f"{market.question}\n\n"
+                    f"[MARKET CONTEXT: The prediction market currently prices YES at "
+                    f"{yes_price:.1%}. This means the crowd believes there is a "
+                    f"{yes_price:.0%} chance of YES. Your simulation should evaluate "
+                    f"whether this market price is accurate, too high, or too low.]"
+                )
                 pipeline = MiroFishPipeline()
                 try:
                     report = await pipeline.run(
                         seed_file_path=seed_path,
-                        simulation_requirement=market.question,
+                        simulation_requirement=enhanced_requirement,
                     )
                 finally:
                     await pipeline.client.aclose()

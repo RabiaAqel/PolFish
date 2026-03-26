@@ -1345,3 +1345,141 @@ def rolling_stop():
         _rolling_loop.request_stop()
         return jsonify({"success": True, "status": "stop_requested"})
     return jsonify({"success": False, "error": "No loop running"}), 400
+
+
+# ---------------------------------------------------------------------------
+# Monte Carlo simulation
+# ---------------------------------------------------------------------------
+_monte_carlo_results: dict = {}
+
+
+def _run_monte_carlo(task_id: str, num_simulations: int, num_bets: int,
+                     accuracies: list[float] | None, edge_thresholds: list[float] | None,
+                     kelly_factors: list[float] | None):
+    """Background worker for Monte Carlo simulation."""
+    from polymarket_predictor.monte_carlo.simulator import MonteCarloSimulator
+
+    try:
+        push_log(f"[Monte Carlo] Starting simulation (task={task_id})", level="info")
+        sim = MonteCarloSimulator()
+
+        # Fetch resolved markets
+        push_log("[Monte Carlo] Fetching resolved markets from Polymarket...")
+        markets = asyncio.run(sim.fetch_resolved_markets(limit=200, min_volume=500))
+        push_log(f"[Monte Carlo] Loaded {len(markets)} resolved markets")
+
+        _deep_tasks[task_id]["progress"] = {
+            "markets_loaded": len(markets),
+            "status": "running_sweep",
+        }
+
+        def on_progress(idx, total, label):
+            pct = round(idx / total * 100, 1)
+            _deep_tasks[task_id]["progress"] = {
+                "markets_loaded": len(markets),
+                "combo_index": idx,
+                "total_combos": total,
+                "percent": pct,
+                "current": label,
+            }
+            if idx % 8 == 0 or idx == total:
+                push_log(f"[Monte Carlo] {pct}% — {label} ({idx}/{total})")
+
+        results = sim.run_parameter_sweep(
+            markets=markets,
+            num_simulations=num_simulations,
+            accuracies=accuracies,
+            edge_thresholds=edge_thresholds,
+            kelly_factors=kelly_factors,
+            num_bets=num_bets,
+            progress_callback=on_progress,
+        )
+
+        # Store results globally and in the task
+        global _monte_carlo_results
+        _monte_carlo_results = results
+
+        # Also persist to disk
+        results_path = DATA_DIR / "monte_carlo_results.json"
+        results_path.write_text(json.dumps(results, indent=2))
+
+        _deep_tasks[task_id]["status"] = "completed"
+        _deep_tasks[task_id]["result"] = results
+
+        be = results.get("break_even")
+        if be:
+            push_log(
+                f"[Monte Carlo] DONE — Break-even accuracy: {be['accuracy']:.0%} "
+                f"(edge={be['edge_threshold']:.0%}, kelly={be['kelly_factor']}, "
+                f"P(profit)={be['probability_of_profit']:.0%})",
+                level="info",
+            )
+        else:
+            push_log("[Monte Carlo] DONE — No break-even found in tested range", level="warn")
+
+    except Exception as exc:
+        logger.exception("Monte Carlo failed")
+        _deep_tasks[task_id]["status"] = "failed"
+        _deep_tasks[task_id]["error"] = str(exc)
+        push_log(f"[Monte Carlo] FAILED: {exc}", level="error")
+
+
+@dashboard_bp.route("/monte-carlo/run", methods=["POST"])
+def monte_carlo_run():
+    """Run Monte Carlo simulation. Body: {num_simulations: 1000, num_bets: 50}"""
+    data = request.get_json(silent=True) or {}
+    num_simulations = int(data.get("num_simulations", 1000))
+    num_bets = int(data.get("num_bets", 50))
+    accuracies = data.get("accuracies")
+    edge_thresholds = data.get("edge_thresholds")
+    kelly_factors = data.get("kelly_factors")
+
+    task_id = uuid.uuid4().hex[:12]
+    _deep_tasks[task_id] = {"status": "running", "type": "monte_carlo", "progress": {}}
+
+    thread = threading.Thread(
+        target=_run_monte_carlo,
+        args=(task_id, num_simulations, num_bets, accuracies, edge_thresholds, kelly_factors),
+        daemon=True,
+    )
+    thread.start()
+
+    return jsonify({"success": True, "task_id": task_id, "status": "running"}), 202
+
+
+@dashboard_bp.route("/monte-carlo/run/<task_id>", methods=["GET"])
+def monte_carlo_status(task_id):
+    """Check Monte Carlo status."""
+    task = _deep_tasks.get(task_id)
+    if task is None:
+        return jsonify({"success": False, "error": f"Task '{task_id}' not found"}), 404
+
+    response: dict = {"success": True, "task_id": task_id, "status": task["status"]}
+
+    if task.get("progress"):
+        response["progress"] = task["progress"]
+
+    if task["status"] == "completed":
+        response["result"] = task["result"]
+    elif task["status"] == "failed":
+        response["error"] = task.get("error", "Unknown error")
+
+    return jsonify(response), 200
+
+
+@dashboard_bp.route("/monte-carlo/results", methods=["GET"])
+def monte_carlo_results():
+    """Get latest Monte Carlo results."""
+    global _monte_carlo_results
+
+    # Try in-memory first
+    if _monte_carlo_results:
+        return jsonify({"success": True, "data": _monte_carlo_results}), 200
+
+    # Try disk cache
+    results_path = DATA_DIR / "monte_carlo_results.json"
+    if results_path.exists():
+        _monte_carlo_results = json.loads(results_path.read_text())
+        return jsonify({"success": True, "data": _monte_carlo_results}), 200
+
+    return jsonify({"success": True, "data": None, "message": "No Monte Carlo results yet"}), 200
