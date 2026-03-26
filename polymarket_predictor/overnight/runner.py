@@ -246,6 +246,36 @@ class OvernightRunner:
                 parser = PredictionParser()
                 prediction = await parser.parse(report_text, market.question)
 
+                # Also run quantitative analysis on the simulation databases
+                sim_id = report.get("simulation_id", "")
+                try:
+                    from polymarket_predictor.analyzer.simulation_analyzer import SimulationAnalyzer
+                    sim_analyzer = SimulationAnalyzer()
+                    quant_analysis = sim_analyzer.analyze(
+                        sim_id,
+                        market_question=market.question,
+                        market_odds=yes_price,
+                    )
+
+                    # Compare LLM prediction vs quantitative prediction
+                    llm_pred = prediction.probability
+                    quant_pred = quant_analysis.computed_probability
+                    push_log(
+                        f"  LLM prediction: {llm_pred:.1%} vs Quantitative: {quant_pred:.1%} "
+                        f"(diff={abs(llm_pred - quant_pred):.1%}, data: {quant_analysis.total_interactions} interactions)",
+                        level="info",
+                    )
+
+                    # Use the AVERAGE of both methods for now
+                    # (later we can calibrate which method is more accurate)
+                    combined_pred = (llm_pred * 0.4 + quant_pred * 0.6)
+                    prediction.probability = combined_pred
+                    push_log(f"  Combined prediction: {combined_pred:.1%} (40% LLM + 60% quantitative)", level="info")
+
+                except Exception as e:
+                    logger.warning("Quantitative analysis failed: %s", e)
+                    push_log(f"  Quantitative analysis failed: {e} (using LLM prediction only)", level="info")
+
                 elapsed = time.time() - start_time
 
                 result.prediction = prediction.probability

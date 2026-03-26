@@ -60,6 +60,9 @@ class MiroFishPipeline:
         report = await self.generate_report(sim_id)
         logger.info("Report generated: %s", report.get("report_id", "unknown"))
 
+        # Attach simulation_id so callers can run post-hoc analysis
+        report["simulation_id"] = sim_id
+
         return report
 
     # ------------------------------------------------------------------
