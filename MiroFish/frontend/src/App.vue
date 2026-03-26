@@ -15,6 +15,7 @@
           <router-link to="/decisions">Decision Log</router-link>
           <router-link to="/backtest">Backtest</router-link>
           <router-link to="/how-it-works">How It Works</router-link>
+          <router-link to="/settings">Settings</router-link>
         </template>
         <template v-else>
           <router-link to="/home">Home</router-link>

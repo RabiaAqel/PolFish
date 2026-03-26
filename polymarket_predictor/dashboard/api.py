@@ -12,7 +12,7 @@ from flask import Blueprint, jsonify, request, Response
 
 from polymarket_predictor.calibrator.history import PredictionHistory
 from polymarket_predictor.calibrator.calibrate import Calibrator
-from polymarket_predictor.config import DATA_DIR, PIPELINE_MODELS, get_stage_config
+from polymarket_predictor.config import DATA_DIR, PIPELINE_MODELS, PIPELINE_PRESET, _PRESETS, PROVIDER_DEFAULTS, get_stage_config
 from polymarket_predictor.cost_calculator import CostCalculator
 from polymarket_predictor.ledger.decision_ledger import DecisionLedger
 from polymarket_predictor.paper_trader.portfolio import PaperPortfolio
@@ -1209,6 +1209,146 @@ def pipeline_config():
             "price_output": cfg["price_output"],
         }
     return jsonify({"success": True, "data": stages})
+
+
+# ---------------------------------------------------------------------------
+# Unified Settings Endpoint
+# ---------------------------------------------------------------------------
+
+_SETTINGS_PATH = DATA_DIR / "settings.json"
+
+
+def _load_settings() -> dict:
+    """Load settings from disk, returning empty dict if not found."""
+    if _SETTINGS_PATH.exists():
+        try:
+            return json.loads(_SETTINGS_PATH.read_text())
+        except (json.JSONDecodeError, OSError):
+            pass
+    return {}
+
+
+def _save_settings(data: dict) -> None:
+    """Persist settings to disk."""
+    _SETTINGS_PATH.write_text(json.dumps(data, indent=2))
+
+
+@dashboard_bp.route("/settings", methods=["GET"])
+def settings_get():
+    """Get all settings — merges autopilot config, pipeline config, strategy, and API key status."""
+    import os as _os
+
+    # 1) Autopilot config
+    autopilot_cfg = _get_autopilot().get_config()
+
+    # 2) Pipeline / preset info
+    from polymarket_predictor.config import MODEL_PRICING
+    preset_info = {}
+    for pname, pstages in _PRESETS.items():
+        total_input = 0.0
+        total_output = 0.0
+        for _stage, model in pstages.items():
+            pricing = MODEL_PRICING.get(model, {"input": 2.50, "output": 10.00})
+            total_input += pricing["input"]
+            total_output += pricing["output"]
+        preset_info[pname] = {
+            "stages": pstages,
+            "estimated_cost": round((total_input + total_output) / 1000 * 15 * 500, 2),
+        }
+
+    pipeline_stages = {}
+    for stage in ["ontology", "graph", "profiles", "simulation", "report"]:
+        cfg = get_stage_config(stage)
+        pipeline_stages[stage] = {
+            "model": cfg["model"],
+            "has_api_key": bool(cfg["api_key"]),
+            "price_input": cfg["price_input"],
+            "price_output": cfg["price_output"],
+        }
+
+    # 3) Strategy config
+    from polymarket_predictor.optimizer.strategy import StrategyOptimizer
+    strat = StrategyOptimizer(data_dir=DATA_DIR)
+    strategy_cfg = strat.get_config()
+
+    # 4) Method weights
+    try:
+        from polymarket_predictor.analyzer.method_tracker import MethodTracker
+        tracker = MethodTracker()
+        method_weights = {"llm_weight": tracker.llm_weight, "quant_weight": tracker.quant_weight}
+    except Exception:
+        method_weights = {"llm_weight": 0.5, "quant_weight": 0.5}
+
+    # 5) API key status
+    api_keys = {
+        "openai": bool(_os.environ.get("LLM_API_KEY", "")),
+        "deepseek": bool(_os.environ.get("DEEPSEEK_API_KEY", "")),
+        "gemini": bool(_os.environ.get("GEMINI_API_KEY", "")),
+        "anthropic": bool(_os.environ.get("ANTHROPIC_API_KEY", "")),
+        "zep": bool(_os.environ.get("ZEP_API_KEY", "")),
+    }
+
+    # 6) Custom overrides from settings.json
+    custom = _load_settings()
+
+    return jsonify({
+        "success": True,
+        "data": {
+            "autopilot": autopilot_cfg,
+            "pipeline_preset": PIPELINE_PRESET,
+            "presets": preset_info,
+            "pipeline_stages": pipeline_stages,
+            "strategy": strategy_cfg,
+            "method_weights": method_weights,
+            "api_keys": api_keys,
+            "custom": custom,
+        },
+    }), 200
+
+
+@dashboard_bp.route("/settings", methods=["PUT"])
+def settings_update():
+    """Update settings.  Body can include any of:
+       {autopilot: {...}, strategy: {...}, custom: {...}}
+    """
+    data = request.get_json(silent=True) or {}
+    if not data:
+        return jsonify({"success": False, "error": "No data provided"}), 400
+
+    errors: list[str] = []
+
+    # Update autopilot config
+    if "autopilot" in data and isinstance(data["autopilot"], dict):
+        try:
+            _get_autopilot().update_config(**data["autopilot"])
+        except Exception as exc:
+            errors.append(f"autopilot: {exc}")
+
+    # Update strategy config
+    if "strategy" in data and isinstance(data["strategy"], dict):
+        try:
+            from polymarket_predictor.optimizer.strategy import StrategyOptimizer
+            strat = StrategyOptimizer(data_dir=DATA_DIR)
+            for k, v in data["strategy"].items():
+                strat._config[k] = v
+            strat.save()
+        except Exception as exc:
+            errors.append(f"strategy: {exc}")
+
+    # Persist custom overrides (simulation params, etc.)
+    if "custom" in data and isinstance(data["custom"], dict):
+        try:
+            current = _load_settings()
+            current.update(data["custom"])
+            _save_settings(current)
+        except Exception as exc:
+            errors.append(f"custom: {exc}")
+
+    if errors:
+        return jsonify({"success": False, "errors": errors}), 500
+
+    push_log("Settings updated successfully", level="success")
+    return jsonify({"success": True}), 200
 
 
 # ---------------------------------------------------------------------------

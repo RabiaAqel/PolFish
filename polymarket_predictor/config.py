@@ -124,7 +124,7 @@ _PRESETS = {
     "balanced": {
         "ontology": "deepseek-chat",
         "graph": "deepseek-chat",
-        "profiles": "gemini-2.0-flash",
+        "profiles": "gemini-2.0-flash-lite",
         "simulation": "gpt-4o",
         "report": "gpt-4o",
     },
@@ -138,7 +138,7 @@ _PRESETS = {
     "premium": {
         "ontology": "deepseek-chat",
         "graph": "deepseek-chat",
-        "profiles": "gemini-2.0-flash",
+        "profiles": "gemini-2.0-flash-lite",
         "simulation": "claude-sonnet-4-20250514",
         "report": "gpt-4o",
     },
@@ -159,7 +159,7 @@ _PRESETS = {
     "gemini": {
         "ontology": "gemini-2.5-flash",
         "graph": "gemini-2.5-flash",
-        "profiles": "gemini-2.0-flash",
+        "profiles": "gemini-2.0-flash-lite",
         "simulation": "gemini-2.5-flash",
         "report": "gemini-2.5-flash",
     },

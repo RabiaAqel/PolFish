@@ -20,7 +20,7 @@ class MiroFishPipeline:
 
     def __init__(self, base_url: str = MIROFISH_API_URL) -> None:
         self.base_url = base_url
-        self.client = httpx.AsyncClient(base_url=base_url, timeout=300.0)
+        self.client = httpx.AsyncClient(base_url=base_url, timeout=600.0)
 
     # ------------------------------------------------------------------
     # Public entry point
@@ -101,7 +101,7 @@ class MiroFishPipeline:
         task_id = result["data"]["task_id"]
 
         # Poll until the build task completes
-        await self._wait_for_task(f"/graph/task/{task_id}", timeout=300)
+        await self._wait_for_task(f"/graph/task/{task_id}", timeout=600)
 
         # Retrieve the graph_id from the project record
         resp = await self.client.get(f"/graph/project/{project_id}")

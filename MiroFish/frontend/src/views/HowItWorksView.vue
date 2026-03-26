@@ -583,6 +583,7 @@
            target="_blank" rel="noopener noreferrer" class="docs-card">Monte Carlo Research</a>
         <a href="https://github.com/RabiaAqel/PolFish/blob/main/docs/TROUBLESHOOTING.md"
            target="_blank" rel="noopener noreferrer" class="docs-card">Troubleshooting</a>
+        <router-link to="/settings" class="docs-card">Settings</router-link>
       </div>
     </section>
 
