@@ -1238,31 +1238,75 @@ class ReportAgent:
         # (The report doesn't always mention market odds, so we embed them)
         market_info = getattr(self, '_market_odds_info', '')
 
+        # Pull in track record context if available
+        track_record_context = ""
+        try:
+            from polymarket_predictor.knowledge.context_store import ContextStore
+            _ctx_store = ContextStore()
+            # Try to extract category from market_info or question
+            _question_lower = self.simulation_requirement.lower()
+            _cat = "other"
+            for _c in ("crypto", "politics", "sports", "finance", "geopolitics", "tech", "science"):
+                if _c in _question_lower:
+                    _cat = _c
+                    break
+            track_record_context = _ctx_store.get_track_record_summary(_cat)
+        except Exception:
+            pass
+
         system_prompt = f"""\
-You are a CONTRARIAN prediction market analyst. Your job is to find where the market is WRONG.
+You are a Superforecaster and CONTRARIAN prediction market analyst. Your job is to \
+systematically forecast the probability of an event and find where the market is WRONG.
 
 Question: "{self.simulation_requirement}"
 {market_info}
+{f"Track record: {track_record_context}" if track_record_context else ""}
 
-Based on the simulation report, provide your FINAL PREDICTION VERDICT.
+Use the following structured process to produce your FINAL PREDICTION VERDICT.
+
+=== STEP 1: DECOMPOSE ===
+Break the question into smaller sub-questions. Identify the key components that \
+must be true for a YES outcome. What are the necessary conditions?
+
+=== STEP 2: BASE RATES ===
+Consider base rates and historical averages as your starting anchor. \
+How often do events like this actually happen? Compare to similar past events. \
+Most bold predictions don't happen. Most ceasefires fail. Most prices don't hit extreme targets.
+
+=== STEP 3: EVIDENCE FROM SIMULATION ===
+What did the simulation reveal? Cite specific agent arguments and findings. \
+Seek both quantitative data and qualitative insights from the debate.
+
+=== STEP 4: FACTORS FOR AND AGAINST ===
+List factors that could influence the outcome in EACH direction. \
+Assess the impact of each factor. Avoid over-reliance on any single piece of information. \
+Use evidence to weigh these factors.
+
+=== STEP 5: CALIBRATE AGAINST MARKET ===
+Think probabilistically — express predictions as probabilities, not certainties. \
+Assign likelihoods and avoid binary thinking. The market has MANY smart participants \
+who have already considered public information. Do you have GENUINE edge from the \
+simulation findings, or are you just restating what the market already knows?
+
+=== STEP 6: PREDICT ===
+Synthesize all steps into a single probability. Your prediction CAN and SHOULD be \
+LOWER than the market if the evidence suggests overpricing. DO NOT have a bias toward YES.
 
 CRITICAL RULES:
 1. You MUST provide a specific numerical probability — NOT a vague statement
-2. The probability must reflect the ACTUAL simulation findings
-3. IMPORTANT: Your prediction CAN and SHOULD be LOWER than the market odds if the simulation evidence suggests the market is overpricing YES
-4. If the simulation found mostly negative evidence, risks, or skepticism among agents, your probability should be LOWER than the market
-5. If the simulation found strong positive evidence and consensus, your probability should be HIGHER than the market
-6. If evidence is mixed or weak, stay CLOSE to the market odds (within ±5%)
-7. DO NOT have a bias toward YES. Markets can be overpriced OR underpriced.
-8. DO NOT default to 50%, 65%, or 35% — think about what the simulation ACTUALLY found
-9. Think about BASE RATES: most bold predictions don't happen, most ceasefires fail, most prices don't hit extreme targets
+2. DO NOT default to 50%, 65%, or 35% — think about what the simulation ACTUALLY found
+3. Embrace uncertainty — all forecasts are probabilistic in nature
+4. If evidence is mixed or weak, stay CLOSE to the market odds (within +/-5%)
 
 OUTPUT FORMAT (you MUST follow this exactly):
+- Sub-questions: [2-3 bullet points from Step 1]
+- Base rate anchor: [X]% because [one sentence from Step 2]
+- Simulation evidence: [key finding from Step 3]
+- Factors FOR: [1-2 bullet points from Step 4]
+- Factors AGAINST: [1-2 bullet points from Step 4]
 - Probability of YES outcome: [your number]%
 - Confidence: [high/medium/low]
 - Direction: [ABOVE_MARKET/BELOW_MARKET/NEUTRAL]
-- Key evidence for YES: [one sentence]
-- Key evidence for NO: [one sentence]
 - Contrarian view: [what the market might be missing]"""
 
         user_prompt = f"""\
@@ -1270,7 +1314,7 @@ Here is the simulation analysis:
 
 {previous_content}
 
-Now provide your Prediction Verdict.
+Now work through the 6-step Superforecaster process above and provide your Prediction Verdict.
 
 IMPORTANT CALIBRATION CHECK before you answer:
 - If this is about something unlikely (price hitting extreme target, ceasefire, rare event), the base rate is LOW (10-30%)

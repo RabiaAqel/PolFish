@@ -274,6 +274,15 @@ class OntologyGenerator:
             # 确保description不超过100字符
             if len(entity.get("description", "")) > 100:
                 entity["description"] = entity["description"][:97] + "..."
+            # Enforce PascalCase for entity names (required by Zep)
+            import re as _re
+            name = entity.get("name", "")
+            if name and not _re.match(r'^[A-Z][a-zA-Z0-9]*$', name):
+                # Convert to PascalCase: "political party" → "PoliticalParty"
+                words = _re.split(r'[\s_\-]+', name)
+                entity["name"] = ''.join(w.capitalize() for w in words if w)
+                # Remove any non-alphanumeric chars
+                entity["name"] = _re.sub(r'[^a-zA-Z0-9]', '', entity["name"])
         
         # 验证关系类型
         for edge in result["edge_types"]:
@@ -283,9 +292,17 @@ class OntologyGenerator:
                 edge["attributes"] = []
             if len(edge.get("description", "")) > 100:
                 edge["description"] = edge["description"][:97] + "..."
+            # Enforce PascalCase for edge source/target references
+            for st in edge.get("source_targets", []):
+                for field in ("source", "target"):
+                    val = st.get(field, "")
+                    if val and not _re.match(r'^[A-Z][a-zA-Z0-9]*$', val):
+                        words = _re.split(r'[\s_\-]+', val)
+                        st[field] = ''.join(w.capitalize() for w in words if w)
+                        st[field] = _re.sub(r'[^a-zA-Z0-9]', '', st[field])
         
         # Zep API 限制：最多 10 个自定义实体类型，最多 10 个自定义边类型
-        MAX_ENTITY_TYPES = 20
+        MAX_ENTITY_TYPES = 10  # Zep hard limit: max 10 entity types
         MAX_EDGE_TYPES = 10
         
         # 兜底类型定义

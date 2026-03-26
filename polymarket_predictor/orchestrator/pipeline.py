@@ -156,7 +156,7 @@ class MiroFishPipeline:
             # Wait for prepare to actually start, then poll until ready
             logger.info("Waiting for prepare to complete for %s...", simulation_id)
             elapsed = 0
-            timeout = 600
+            timeout = 1800  # 30min for local model profile generation
             interval = 5
             while elapsed < timeout:
                 await asyncio.sleep(interval)

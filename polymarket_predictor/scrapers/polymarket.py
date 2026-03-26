@@ -410,6 +410,182 @@ class PolymarketScraper:
 
         return []
 
+    async def get_market_by_id(self, market_id: str) -> Market | None:
+        """Fetch a single market by its numeric or string ID.
+
+        Useful for looking up a specific market when you already have the ID
+        (e.g. from an order book or CLOB reference).
+        """
+        try:
+            resp = await self._client.get(f"/markets/{market_id}")
+            resp.raise_for_status()
+            raw = resp.json()
+            if raw:
+                return _parse_market(raw, raw)
+        except httpx.HTTPStatusError as exc:
+            logger.error("HTTP %s fetching market id=%s", exc.response.status_code, market_id)
+        except httpx.RequestError as exc:
+            logger.error("Request error fetching market id=%s: %s", market_id, exc)
+        return None
+
+    async def search_markets(
+        self,
+        query: str,
+        *,
+        active_only: bool = True,
+        limit: int = 20,
+    ) -> list[Market]:
+        """Search markets by text query (question / title substring).
+
+        The Gamma API ``/events`` endpoint supports a ``tag`` param and
+        text filtering. This method uses the ``/markets`` endpoint with
+        a ``slug_contains`` heuristic and the ``/events`` search.
+        """
+        all_markets: list[Market] = []
+
+        # Strategy: search events endpoint which supports text matching
+        params: dict[str, Any] = {
+            "limit": limit,
+            "order": "volume24hr",
+            "ascending": "false",
+        }
+        if active_only:
+            params["active"] = "true"
+            params["closed"] = "false"
+
+        # The Gamma API doesn't have a formal text search param, but we can
+        # filter client-side after fetching by volume
+        events = await self._fetch_events(params)
+        query_lower = query.lower()
+        for event in events:
+            for market in _parse_event(event):
+                if query_lower in market.question.lower() or query_lower in market.slug.lower():
+                    all_markets.append(market)
+                    if len(all_markets) >= limit:
+                        break
+            if len(all_markets) >= limit:
+                break
+
+        logger.info("Search for '%s' returned %d markets", query, len(all_markets))
+        return all_markets
+
+    async def get_event_markets(self, event_slug: str) -> list[Market]:
+        """Fetch ALL markets for a given event slug.
+
+        Polymarket events can contain multiple markets (e.g. multi-outcome
+        questions split into binary markets). This returns every market
+        under the event, useful for multi-outcome market analysis.
+        """
+        try:
+            resp = await self._client.get("/events", params={"slug": event_slug})
+            resp.raise_for_status()
+            events: list[dict[str, Any]] = resp.json()
+            all_markets: list[Market] = []
+            for event in events:
+                all_markets.extend(_parse_event(event))
+            logger.info("Event '%s' contains %d markets", event_slug, len(all_markets))
+            return all_markets
+        except httpx.HTTPStatusError as exc:
+            logger.error("HTTP %s fetching event slug=%s", exc.response.status_code, event_slug)
+        except httpx.RequestError as exc:
+            logger.error("Request error fetching event slug=%s: %s", event_slug, exc)
+        return []
+
+    async def get_tradable_markets(self, limit: int = 50) -> list[Market]:
+        """Fetch only markets with active order books (CLOB-tradable).
+
+        These are the markets where real-time trading is possible, filtering
+        out markets that are display-only or have no order book.
+        """
+        all_markets: list[Market] = []
+        offset = 0
+
+        for _page in range(3):
+            params: dict[str, Any] = {
+                "active": "true",
+                "closed": "false",
+                "limit": min(limit, 100),
+                "offset": offset,
+                "order": "volume24hr",
+                "ascending": "false",
+                "enableOrderBook": "true",
+            }
+            try:
+                resp = await self._client.get("/markets", params=params)
+                resp.raise_for_status()
+                data = resp.json()
+                if not data:
+                    break
+
+                for raw in data:
+                    try:
+                        market = _parse_market(raw, raw)
+                        if market:
+                            all_markets.append(market)
+                    except Exception:
+                        continue
+
+                if len(data) < params["limit"] or len(all_markets) >= limit:
+                    break
+                offset += params["limit"]
+            except Exception:
+                break
+
+        logger.info("Fetched %d tradable markets", len(all_markets))
+        return all_markets[:limit]
+
+    async def get_order_book_summary(
+        self, token_id: str
+    ) -> dict[str, Any]:
+        """Fetch order book summary (best bid/ask, spread) from the CLOB API.
+
+        Parameters
+        ----------
+        token_id:
+            The condition/token ID of the market outcome.
+
+        Returns
+        -------
+        dict with keys: best_bid, best_ask, spread, midpoint, bids_depth, asks_depth
+        """
+        result: dict[str, Any] = {
+            "best_bid": 0.0,
+            "best_ask": 1.0,
+            "spread": 1.0,
+            "midpoint": 0.5,
+            "bids_depth": 0,
+            "asks_depth": 0,
+        }
+        try:
+            resp = await self._client.get(
+                f"{POLYMARKET_CLOB_URL}/book",
+                params={"token_id": token_id},
+            )
+            resp.raise_for_status()
+            data = resp.json()
+
+            bids = data.get("bids", [])
+            asks = data.get("asks", [])
+
+            if bids:
+                result["best_bid"] = float(bids[0].get("price", 0))
+                result["bids_depth"] = len(bids)
+            if asks:
+                result["best_ask"] = float(asks[0].get("price", 1))
+                result["asks_depth"] = len(asks)
+
+            result["spread"] = round(result["best_ask"] - result["best_bid"], 4)
+            result["midpoint"] = round((result["best_ask"] + result["best_bid"]) / 2, 4)
+
+        except httpx.HTTPStatusError as exc:
+            logger.error("HTTP %s fetching order book for token=%s", exc.response.status_code, token_id)
+        except httpx.RequestError as exc:
+            logger.error("Request error fetching order book for token=%s: %s", token_id, exc)
+        except Exception as exc:
+            logger.warning("Failed to parse order book for token=%s: %s", token_id, exc)
+
+        return result
+
     async def close(self) -> None:
         """Close the underlying HTTP client and release resources."""
         await self._client.aclose()

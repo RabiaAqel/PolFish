@@ -190,6 +190,13 @@ _PRESETS = {
         "simulation": "llama3.1:8b",
         "report": "gpt-4o",
     },
+    "max_local": {
+        "ontology": "llama3.1:8b",
+        "graph": "llama3.1:8b",
+        "profiles": "llama3.1:8b",
+        "simulation": "llama3.1:8b",
+        "report": "deepseek-chat",
+    },
 }
 
 PIPELINE_PRESET = os.environ.get("PIPELINE_PRESET", "balanced")

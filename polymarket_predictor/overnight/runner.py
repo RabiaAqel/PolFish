@@ -18,6 +18,7 @@ from polymarket_predictor.overnight.state import (
 )
 from polymarket_predictor.config import DATA_DIR, DEFAULT_MAX_ROUNDS
 from polymarket_predictor.cost_calculator import CostCalculator
+from polymarket_predictor.knowledge.context_store import ContextStore, MarketContext
 
 logger = logging.getLogger(__name__)
 
@@ -93,6 +94,7 @@ class OvernightRunner:
         resolver = MarketResolver(portfolio, calibrator, history)
         grouper = MarketGrouper()
         thesis_applier = ThesisApplier()
+        context_store = ContextStore(data_dir=DATA_DIR)
 
         push_log(f"Overnight run started: {state.completed}/{state.total_target} done, budget ${state.max_budget_usd - state.total_cost_usd:.2f} remaining")
 
@@ -509,6 +511,24 @@ class OvernightRunner:
 
                 state.completed += 1
                 state.total_cost_usd += prediction_cost
+
+                # --- Log to persistent context store ---
+                try:
+                    _cat = representative.category or "other"
+                    context_store.add(MarketContext(
+                        market_id=representative.slug,
+                        question=representative.question,
+                        category=_cat,
+                        market_odds_at_prediction=yes_price,
+                        our_prediction=prediction.probability,
+                        key_factors=getattr(prediction, "key_factors", []),
+                        agent_consensus=(
+                            "bullish" if prediction.probability > 0.6
+                            else ("bearish" if prediction.probability < 0.4 else "divided")
+                        ),
+                    ))
+                except Exception as e:
+                    logger.warning("Failed to log to context store: %s", e)
 
             except Exception as e:
                 elapsed = time.time() - start_time
