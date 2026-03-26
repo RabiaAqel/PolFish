@@ -564,11 +564,25 @@
       </p>
       <div class="docs-link-box">
         <span class="docs-arrow">&rarr;</span>
-        <a href="https://github.com/rabeaabuaqel/MiroFish/blob/main/docs/README.md"
+        <a href="https://github.com/RabiaAqel/PolFish/blob/main/docs/README.md"
            target="_blank" rel="noopener noreferrer" class="docs-link">
-          docs/README.md
+          PolFish Documentation
         </a>
-        <span class="docs-note">(in the repository)</span>
+        <span class="docs-note">(opens GitHub)</span>
+      </div>
+      <div class="docs-links-grid">
+        <a href="https://github.com/RabiaAqel/PolFish/blob/main/docs/ARCHITECTURE.md"
+           target="_blank" rel="noopener noreferrer" class="docs-card">Architecture</a>
+        <a href="https://github.com/RabiaAqel/PolFish/blob/main/docs/CONFIGURATION.md"
+           target="_blank" rel="noopener noreferrer" class="docs-card">Configuration</a>
+        <a href="https://github.com/RabiaAqel/PolFish/blob/main/docs/API_REFERENCE.md"
+           target="_blank" rel="noopener noreferrer" class="docs-card">API Reference</a>
+        <a href="https://github.com/RabiaAqel/PolFish/blob/main/docs/COST_OPTIMIZATION.md"
+           target="_blank" rel="noopener noreferrer" class="docs-card">Cost Optimization</a>
+        <a href="https://github.com/RabiaAqel/PolFish/blob/main/docs/MONTE_CARLO_RESEARCH.md"
+           target="_blank" rel="noopener noreferrer" class="docs-card">Monte Carlo Research</a>
+        <a href="https://github.com/RabiaAqel/PolFish/blob/main/docs/TROUBLESHOOTING.md"
+           target="_blank" rel="noopener noreferrer" class="docs-card">Troubleshooting</a>
       </div>
     </section>
 
@@ -1721,6 +1735,33 @@ onUnmounted(() => {
 .docs-link:hover {
   color: #cc3700;
   text-decoration: underline;
+}
+
+.docs-links-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.docs-card {
+  display: block;
+  padding: 14px 16px;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  text-decoration: none;
+  text-align: center;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.docs-card:hover {
+  border-color: #FF4500;
+  color: #FF4500;
 }
 
 .docs-note {
