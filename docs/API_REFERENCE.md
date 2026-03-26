@@ -1173,6 +1173,8 @@ Get the latest Monte Carlo results without needing a task ID. Results are cached
 
 ## Overnight Runner
 
+The overnight runner integrates the **multi-tier thesis system**. After scanning markets, it groups related markets (e.g., "Iran ceasefire by April/May/June/December") using `MarketGrouper`, runs ONE deep prediction per group on the shared thesis question, then applies the thesis to all tiers using `ThesisApplier`. This reduces API costs by up to 78% when many related markets are available (3 group predictions instead of 14 individual ones).
+
 ### POST /api/polymarket/overnight/start
 
 Start a resilient overnight calibration run. Runs N deep predictions with crash recovery -- if the process is interrupted, it resumes from the last checkpoint.

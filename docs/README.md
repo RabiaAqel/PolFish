@@ -84,6 +84,7 @@ curl -X POST http://localhost:5001/api/polymarket/predict/deep \
 - **Monte Carlo viability analysis** -- Parameter sweeps across accuracy, edge thresholds, and Kelly fractions to find break-even and optimal configurations
 - **Overnight runner** -- Crash-safe batch predictions with atomic checkpoints and auto-resume
 - **Rolling trading loop** -- Continuous prediction rounds at configurable intervals with budget caps
+- **Multi-tier thesis grouping** -- Related markets (date tiers, price tiers, stage tiers) are grouped by shared thesis; ONE deep prediction covers all tiers, reducing costs by up to 78%
 - **Self-improving method weights** -- MethodTracker auto-adjusts LLM vs quantitative blend based on resolved market outcomes
 - **Paper trading** -- Full portfolio simulation with Kelly-optimal sizing, P&L tracking, and auto-resolution
 - **Autopilot** -- End-to-end autonomous cycles: scan, predict, bet, resolve, optimize
@@ -92,9 +93,11 @@ curl -X POST http://localhost:5001/api/polymarket/predict/deep \
 
 ## How It Works (Summary)
 
-1. **Scan** -- MarketScanner fetches active markets from Polymarket, filters by expiry, volume, and odds uncertainty, then ranks by "niche score" (markets where the crowd is less likely to be efficient).
+1. **Scan** -- MarketScanner fetches active markets from Polymarket, filters by expiry, volume, and odds uncertainty, then ranks by PolFish suitability score (category edge, volume sweet spot, odds uncertainty).
 
-2. **Seed** -- SeedGenerator combines market data with scraped news articles into structured text documents that frame the debate.
+2. **Group** -- MarketGrouper clusters related markets by shared thesis (date tiers, price tiers, stage tiers). One deep prediction per group covers all tier markets.
+
+3. **Seed** -- SeedGenerator combines market data with scraped news articles into structured text documents that frame the debate.
 
 3. **Simulate** -- The seed is uploaded to MiroFish, which builds a knowledge graph, creates AI agent profiles, and runs a multi-round debate simulation where agents argue different sides.
 
@@ -136,6 +139,9 @@ mirofish/
       method_tracker.py        # LLM vs quant comparison, auto-blend weights
     monte_carlo/               # Portfolio viability simulation
       simulator.py             # Parameter sweeps, break-even analysis
+    thesis/                    # Multi-tier thesis grouping
+      grouper.py               # MarketGrouper — group related markets
+      applier.py               # ThesisApplier — apply thesis to tiers
     overnight/                 # Resilient long-running operations
       runner.py                # OvernightRunner + RollingLoop
       state.py                 # Crash-safe atomic state checkpoints

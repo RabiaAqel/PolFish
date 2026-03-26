@@ -197,7 +197,34 @@ The autopilot engine has a budget cap (`max_cost_per_cycle`). Set it based on yo
 }
 ```
 
-### 7. Leverage Free Tiers
+### 7. Multi-Tier Thesis Grouping
+
+The thesis system groups related markets (e.g., "Iran ceasefire by April/May/June/December") and runs ONE deep prediction per group instead of one per market. The thesis prediction is then applied to each tier using `ThesisApplier`.
+
+**Cost savings example:**
+
+```
+BEFORE thesis grouping:
+  14 individual markets x $0.42 = $5.88
+
+AFTER thesis grouping:
+  Group 1: Iran ceasefire (7 tiers)     -> 1 prediction = $0.42
+  Group 2: Oil prices (6 tiers)          -> 1 prediction = $0.42
+  Group 3: Eurovision winner (single)    -> 1 prediction = $0.42
+  Total: 3 predictions = $1.26
+
+Savings: $5.88 - $1.26 = $4.62 (78% reduction)
+```
+
+This is the highest-impact cost optimization because it applies multiplicatively: every multi-tier group with N markets saves (N-1) deep predictions. In practice, Polymarket frequently lists 5-10+ date tiers for major events (ceasefire deadlines, price targets, election stages), making this saving reliable.
+
+| Scenario | Markets | Groups | Predictions | Cost (balanced) | Savings |
+|----------|---------|--------|-------------|-----------------|---------|
+| No grouping | 14 | 14 | 14 | $5.88 | -- |
+| Light grouping | 14 | 8 | 8 | $3.36 | 43% |
+| Heavy grouping | 14 | 3 | 3 | $1.26 | 78% |
+
+### 8. Leverage Free Tiers
 
 - **Gemini**: 15 RPM, 1M tokens/day free (enough for ~9 predictions/day with the gemini preset)
 - **Groq**: 30 RPM free tier with llama models

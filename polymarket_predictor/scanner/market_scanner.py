@@ -175,6 +175,60 @@ class MarketScanner:
     async def __aexit__(self, *exc: object) -> None:
         await self.close()
 
+    # -- PolFish suitability scoring ------------------------------------------
+
+    def _polfish_suitability_score(self, market: Market) -> float:
+        """Score a market for PolFish prediction suitability (0-10).
+
+        Factors in category suitability, volume sweet spot, odds uncertainty,
+        and multi-tier potential. Higher = better ROI opportunity.
+        """
+        score = 0.0
+        q = market.question.lower()
+
+        # Category (0-4 points)
+        if any(kw in q for kw in ['ceasefire', 'war', 'invasion', 'sanction', 'military', 'nuclear']):
+            score += 4  # Geopolitics — best
+        elif any(kw in q for kw in ['election', 'president', 'parliament', 'party', 'vote']):
+            score += 3.5  # Politics
+        elif any(kw in q for kw in ['fda', 'approval', 'regulation', 'trial']):
+            score += 3.5  # Science/regulatory
+        elif any(kw in q for kw in ['ipo', 'acquisition', 'ceo', 'company']):
+            score += 2.5  # Business
+        elif any(kw in q for kw in ['eurovision', 'oscar', 'album', 'movie']):
+            score += 2  # Culture
+        elif any(kw in q for kw in ['bitcoin', 'btc', 'ethereum', 'crypto']):
+            score += 1  # Crypto — most efficient
+        else:
+            score += 2  # Other
+
+        # Volume sweet spot (0-3 points)
+        vol = market.volume
+        if 1000 <= vol <= 100000:
+            score += 3  # Sweet spot — enough liquidity, not too efficient
+        elif 100000 < vol <= 1000000:
+            score += 2  # Good but more efficient
+        elif vol > 1000000:
+            score += 1  # Very efficient, hard to beat
+        elif vol >= 500:
+            score += 1.5  # Low but tradeable
+
+        # Odds uncertainty (0-3 points)
+        yes_price = 0.5
+        for o in getattr(market, 'outcomes', []):
+            if isinstance(o, dict) and o.get('name', '').lower() in ('yes', 'up'):
+                yes_price = float(o.get('price', 0.5))
+                break
+
+        # Most uncertain near 50%, less interesting near 0% or 100%
+        uncertainty = 1.0 - 4 * (yes_price - 0.5) ** 2  # Peaks at 50%
+        # But also interesting if asymmetric (10-30% or 70-90%) — potential for edge
+        if 0.15 <= yes_price <= 0.40 or 0.60 <= yes_price <= 0.85:
+            uncertainty = max(uncertainty, 0.7)
+        score += uncertainty * 3
+
+        return round(score, 2)
+
     # -- Scanning methods ----------------------------------------------------
 
     async def scan_expiring(
@@ -279,7 +333,13 @@ class MarketScanner:
                 niche = _compute_niche_score(mkt, category)
                 # Combined score: niche bonus + uncertainty bonus (closeness to 50%)
                 uncertainty = 1.0 - abs(yes_price - 0.5) * 2  # 1.0 at 50%, 0.0 at 0%/100%
-                combined = niche * 0.6 + uncertainty * 0.4
+                niche_combined = niche * 0.6 + uncertainty * 0.4
+
+                # PolFish suitability score (0-10) — category, volume, uncertainty
+                polfish_score = self._polfish_suitability_score(mkt)
+
+                # Blend niche score (0-1) with polfish score (0-10, normalized)
+                combined = niche_combined * 0.3 + (polfish_score / 10.0) * 0.7
                 scored.append((combined, mkt))
 
         # Sort by combined score (highest = most promising) then by expiry
@@ -287,7 +347,7 @@ class MarketScanner:
         interesting = [mkt for _, mkt in scored]
 
         logger.info(
-            "Found %d interesting markets (odds %.2f-%.2f, niche-sorted) from %d expiring",
+            "Found %d interesting markets (odds %.2f-%.2f, polfish-ranked) from %d expiring",
             len(interesting),
             low,
             high,

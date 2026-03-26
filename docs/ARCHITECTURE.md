@@ -92,6 +92,19 @@
   |  | - 1000+ simulation paths  |   | - Graceful stop support         |  |
   |  | - Uses real market data   |   | - Auto-resume on restart        |  |
   |  +---------------------------+   +----------------------------------+  |
+  |                                                                        |
+  |  +---------------------------+   +----------------------------------+  |
+  |  | MarketGrouper             |   | ThesisApplier                    |  |
+  |  | (thesis/grouper.py)       |   | (thesis/applier.py)              |  |
+  |  |                           |   |                                  |  |
+  |  | Multi-tier thesis system: |   | Apply thesis to individual tiers:|  |
+  |  | - Date tiers (same event, |   | - Date: cumulative probability  |  |
+  |  |   different deadlines)    |   | - Price: directional adjustment |  |
+  |  | - Price tiers (same asset,|   | - Stage: conditional probability|  |
+  |  |   different targets)      |   | - Returns TierPrediction per    |  |
+  |  | - Stage tiers (nomination |   |   market with edge + signal     |  |
+  |  |   -> election)            |   |                                  |  |
+  |  +---------------------------+   +----------------------------------+  |
   +------------------------------------------------------------------------+
            |
            v
@@ -217,6 +230,38 @@ Weights auto-adjust as markets resolve:
 Final prediction → edge calculation → bet decision
 ```
 
+### Multi-Tier Thesis Flow (Overnight Runner)
+
+```
+MarketScanner.scan_interesting()
+       |
+       v
+MarketGrouper.group_markets(candidates)
+       |
+       v
+Groups: [Iran ceasefire (7 tiers), Oil prices (6 tiers), Eurovision (single)]
+       |
+       v
+For each GROUP:
+  |
+  +-> If multi-tier (2+ markets):
+  |     |
+  |     +-> Run ONE deep prediction on group.thesis_question
+  |     |     (e.g., "When will Iran ceasefire happen?")
+  |     |
+  |     +-> ThesisApplier.apply_{date|price|stage}_thesis()
+  |     |     Maps thesis prediction to each tier market
+  |     |
+  |     +-> For each tier: check edge, size bet, place if warranted
+  |
+  +-> If single market:
+        |
+        +-> Run deep prediction as normal (same as before)
+        +-> Check edge, size bet, place if warranted
+
+Cost savings: 3 groups x $0.42 = $1.26 vs 14 markets x $0.42 = $5.88 (78%)
+```
+
 ### Autopilot Cycle Flow
 
 ```
@@ -329,6 +374,11 @@ analyzer/
     v
 monte_carlo/
   simulator.py   -----> MonteCarloSimulator, ParameterSweepResult
+    |
+    v
+thesis/
+  grouper.py     -----> MarketGrouper, MarketGroup (group related markets)
+  applier.py     -----> ThesisApplier, TierPrediction (apply thesis to tiers)
     |
     v
 overnight/

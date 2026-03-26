@@ -73,6 +73,8 @@ class OvernightRunner:
         from polymarket_predictor.optimizer.strategy import StrategyOptimizer
         from polymarket_predictor.resolver.resolver import MarketResolver
         from polymarket_predictor.ledger.decision_ledger import DecisionLedger
+        from polymarket_predictor.thesis.grouper import MarketGrouper
+        from polymarket_predictor.thesis.applier import ThesisApplier
 
         # Try to import push_log for live UI updates
         try:
@@ -88,6 +90,8 @@ class OvernightRunner:
         optimizer = StrategyOptimizer(data_dir=DATA_DIR)
         ledger = DecisionLedger(data_dir=DATA_DIR)
         resolver = MarketResolver(portfolio, calibrator, history)
+        grouper = MarketGrouper()
+        thesis_applier = ThesisApplier()
 
         push_log(f"Overnight run started: {state.completed}/{state.total_target} done, budget ${state.max_budget_usd - state.total_cost_usd:.2f} remaining")
 
@@ -111,11 +115,11 @@ class OvernightRunner:
             prediction_num = state.completed + state.failed + state.skipped + 1
             push_log(f"[{prediction_num}/{state.total_target}] Scanning for next market...")
 
-            # --- Phase 1: Find a market to predict ---
+            # --- Phase 1: Find markets and group them by thesis ---
             state.current_phase = "scanning"
             self._sm.save(state)
 
-            market = None
+            groups = []
             try:
                 async with MarketScanner() as scanner:
                     interesting = await scanner.scan_interesting(
@@ -139,39 +143,39 @@ class OvernightRunner:
                     self._sm.checkpoint(state, "No more markets to process")
                     break
 
-                # --- Rank candidates by edge potential ---
-                # Prefer markets that are NOT near 50/50 (more room for disagreement),
-                # have lower volume (less efficient), and are niche topics.
-                # Markets near 50% tend to produce SKIP because the simulation
-                # agrees with the market consensus.
+                # --- Group markets by thesis ---
+                groups = grouper.group_markets(candidates)
 
-                def _edge_potential(m):
-                    """Score a market's potential for finding edge. Higher = better."""
-                    yes_price = 0.5
-                    for o in m.outcomes:
-                        if isinstance(o, dict) and o.get("name", "").lower() in ("yes", "up"):
-                            yes_price = float(o.get("price", 0.5))
-                            break
+                # Log grouping summary
+                multi_tier = [g for g in groups if len(g.markets) > 1]
+                single_tier = [g for g in groups if len(g.markets) == 1]
+                total_markets = sum(len(g.markets) for g in groups)
 
-                    # Distance from 50% — markets at 20% or 80% have more potential
-                    asymmetry = abs(yes_price - 0.5) * 2  # 0 at 50%, 1 at 0% or 100%
+                group_descriptions = []
+                for g in groups:
+                    if len(g.markets) > 1:
+                        # Use a short label from the thesis question
+                        label = g.thesis_question[:30].rstrip('?').strip()
+                        group_descriptions.append(f"{label} ({len(g.markets)} tiers)")
+                    else:
+                        group_descriptions.append(f"{g.markets[0].question[:30].strip()} (single)")
 
-                    # Low volume = less efficient market
-                    vol = getattr(m, "volume", 0) or 0
-                    vol_score = 1.0 if vol < 5000 else (0.5 if vol < 50000 else 0.2)
-
-                    return asymmetry * 0.6 + vol_score * 0.4
-
-                candidates.sort(key=_edge_potential, reverse=True)
-
-                # Take the best candidate
-                market = candidates[0]
-                score = _edge_potential(market)
                 push_log(
-                    f"Selected from {len(candidates)} candidates: "
-                    f"{market.question[:50]}... (edge potential={score:.2f})",
-                    level="success",
+                    f"Found {len(groups)} groups: {', '.join(group_descriptions[:5])}"
+                    + (f" ... +{len(groups) - 5} more" if len(groups) > 5 else ""),
+                    level="info",
                 )
+
+                # Log cost savings from thesis grouping
+                old_cost = total_markets * 0.42
+                new_cost = len(groups) * 0.42
+                saved = old_cost - new_cost
+                if len(multi_tier) > 0:
+                    push_log(
+                        f"Running {len(groups)} deep predictions instead of {total_markets} "
+                        f"(saved ~${saved:.2f})",
+                        level="success",
+                    )
 
             except Exception as e:
                 logger.exception("Scan failed")
@@ -180,60 +184,71 @@ class OvernightRunner:
                 await asyncio.sleep(30)  # Wait and retry
                 continue
 
-            # --- Phase 2: Deep predict ---
-            slug = market.slug
-            state.current_market = slug
+            # --- Phase 2: Process groups (one deep prediction per group) ---
+            if not groups:
+                break
+
+            # Take the first unprocessed group
+            group = groups[0]
+            representative = group.markets[0]  # First market as representative
+
+            # Mark all markets in this group as processed
+            for m in group.markets:
+                if m.slug not in state.processed_slugs:
+                    state.processed_slugs.append(m.slug)
+
+            state.current_market = representative.slug
             state.current_phase = "predicting"
-            state.processed_slugs.append(slug)
             self._sm.save(state)
 
-            result = PredictionResult(
-                market_id=slug,
-                slug=slug,
-                question=market.question,
-                market_odds=0.0,
-                status="running",
-            )
-
-            # Extract market odds
+            # Extract market odds for representative
             yes_price = 0.5
-            for o in market.outcomes:
+            for o in representative.outcomes:
                 if isinstance(o, dict) and o.get("name", "").lower() in ("yes", "up"):
                     yes_price = float(o.get("price", 0.5))
                     break
-            result.market_odds = yes_price
 
-            push_log(f"[{prediction_num}/{state.total_target}] Deep predicting: {market.question[:60]}...")
+            is_multi_tier = len(group.markets) >= 2
+
+            if is_multi_tier:
+                push_log(
+                    f"[{prediction_num}/{state.total_target}] Deep predicting thesis: "
+                    f"{group.thesis_question[:60]}... ({len(group.markets)} tiers)",
+                )
+            else:
+                push_log(f"[{prediction_num}/{state.total_target}] Deep predicting: {representative.question[:60]}...")
 
             start_time = time.time()
             try:
                 # Gather news — deep research with fallback
+                # Use thesis question for multi-tier, market question for single
+                research_question = group.thesis_question if is_multi_tier else representative.question
                 news = NewsAggregator()
                 gen = SeedGenerator()
                 try:
                     try:
                         research = await news.search_articles_deep(
-                            market.question,
+                            research_question,
                             max_results=10,
-                            market_slug=market.slug,
+                            market_slug=representative.slug,
                         )
-                        seed_path = gen.generate_deep_seed(market, research, variant="balanced")
+                        seed_path = gen.generate_deep_seed(representative, research, variant="balanced")
                         push_log(f"  Deep research: {research.total_words} words from {research.sources_count} sources")
                     except Exception as e:
                         logger.warning("Deep research failed, falling back to basic: %s", e)
-                        articles = await news.search_articles(market.question, max_results=5)
-                        seed_path = gen.generate_seed(market, articles, variant="balanced")
+                        articles = await news.search_articles(research_question, max_results=5)
+                        seed_path = gen.generate_seed(representative, articles, variant="balanced")
                 finally:
                     await news.close()
 
                 # Run full MiroFish pipeline
-                # Include market odds in the requirement so the report agent
-                # knows what the market thinks and can disagree
+                # For multi-tier groups, use the thesis question instead of market question
+                simulation_question = group.thesis_question if is_multi_tier else representative.question
                 enhanced_requirement = (
-                    f"{market.question}\n\n"
+                    f"{simulation_question}\n\n"
                     f"[MARKET CONTEXT]\n"
                     f"Current market odds: {yes_price:.1%} YES\n"
-                    f"Market volume: ${market.volume:,.0f}\n"
+                    f"Market volume: ${representative.volume:,.0f}\n"
                     f"This is a prediction market where real money is at stake.\n\n"
                     f"[INSTRUCTIONS FOR SIMULATION]\n"
                     f"Agents should debate this question from diverse perspectives.\n"
@@ -252,14 +267,14 @@ class OvernightRunner:
                 finally:
                     await pipeline.client.aclose()
 
-                # Extract prediction
+                # Extract thesis prediction
                 report_text = (
                     report.get("markdown_content", "")
                     or report.get("report_text", "")
                     or report.get("content", "")
                 )
                 parser = PredictionParser()
-                prediction = await parser.parse(report_text, market.question)
+                prediction = await parser.parse(report_text, simulation_question)
 
                 # Also run quantitative analysis on the simulation databases
                 sim_id = report.get("simulation_id", "")
@@ -270,14 +285,12 @@ class OvernightRunner:
                     method_tracker = MethodTracker()
                     quant_analysis = sim_analyzer.analyze(
                         sim_id,
-                        market_question=market.question,
+                        market_question=simulation_question,
                         market_odds=yes_price,
                     )
 
-                    # Use method tracker for blending (learns optimal weights over time)
                     llm_pred = prediction.probability
                     quant_pred = quant_analysis.computed_probability
-
                     combined_pred = method_tracker.blend(llm_pred, quant_pred)
 
                     push_log(
@@ -286,10 +299,9 @@ class OvernightRunner:
                         level="info",
                     )
 
-                    # Log the comparison for future scoring
                     method_tracker.log_prediction(PredictionComparison(
-                        market_id=slug,
-                        question=market.question,
+                        market_id=representative.slug,
+                        question=simulation_question,
                         market_odds=yes_price,
                         llm_prediction=llm_pred,
                         quant_prediction=quant_pred,
@@ -302,7 +314,6 @@ class OvernightRunner:
                         consensus_strength=quant_analysis.consensus_strength,
                     ))
 
-                    # Use combined prediction
                     prediction.probability = combined_pred
 
                 except Exception as e:
@@ -310,91 +321,200 @@ class OvernightRunner:
                     push_log(f"  Quantitative analysis failed: {e} (using LLM prediction only)", level="info")
 
                 elapsed = time.time() - start_time
+                prediction_cost = 0.42  # estimated per deep prediction
 
-                result.prediction = prediction.probability
-                result.edge = round(prediction.probability - yes_price, 4)
-                result.confidence = prediction.confidence
-                result.signal = "BUY_YES" if result.edge > 0.03 else ("BUY_NO" if result.edge < -0.03 else "SKIP")
-                result.duration_seconds = round(elapsed, 1)
-                result.status = "completed"
-                result.completed_at = datetime.now(timezone.utc).isoformat()
-                # TODO: add real cost from cost_tracker when wired
-                result.cost_usd = 0.42  # estimated for hybrid
-
-                push_log(
-                    f"[{prediction_num}/{state.total_target}] {market.question[:40]}... "
-                    f"pred={prediction.probability:.1%} vs market={yes_price:.1%} "
-                    f"edge={result.edge:+.1%} ({elapsed:.0f}s, ~${result.cost_usd:.2f})",
-                    level="success",
-                )
-
-                # --- Phase 3: Bet if edge is sufficient ---
+                # --- Phase 3: Apply thesis to tiers and bet ---
                 state.current_phase = "betting"
                 self._sm.save(state)
 
-                abs_edge = abs(result.edge)
-                if abs_edge >= 0.03:
-                    side = "YES" if result.edge > 0 else "NO"
-                    bet_info = sizer.size_bet(
-                        portfolio.balance, prediction.probability, yes_price,
-                        abs_edge, prediction.confidence,
-                    )
-                    if bet_info["amount"] > 0:
-                        closes_at = ""
-                        if market.end_date:
-                            closes_at = market.end_date.isoformat()
-                        portfolio.place_bet(
-                            market_id=slug, slug=slug, question=market.question,
-                            side=side, amount=bet_info["amount"], odds=yes_price,
-                            closes_at=closes_at,
-                            prediction=prediction.probability,
-                            edge=abs_edge,
-                            confidence=prediction.confidence,
-                            mode="deep",
-                            kelly_fraction=bet_info.get("kelly_fraction", 0.0),
-                            cost_usd=result.cost_usd,
+                if is_multi_tier:
+                    # Apply thesis to all tiers using the appropriate applier method
+                    if group.group_type == "date_tier":
+                        tier_predictions = thesis_applier.apply_date_thesis(
+                            prediction.probability, prediction.confidence, group.markets,
                         )
-                        result.side = side
-                        result.bet_amount = bet_info["amount"]
-                        result.bet_placed = True
-                        push_log(f"  BET PLACED: ${bet_info['amount']:.2f} {side} (edge={abs_edge:.1%})", level="success")
+                    elif group.group_type == "price_tier":
+                        tier_predictions = thesis_applier.apply_price_thesis(
+                            prediction.probability, prediction.confidence, group.markets,
+                        )
+                    elif group.group_type == "stage_tier":
+                        tier_predictions = thesis_applier.apply_stage_thesis(
+                            prediction.probability, prediction.confidence, group.markets,
+                        )
+                    else:
+                        # Unknown group type — fall back to date thesis logic
+                        tier_predictions = thesis_applier.apply_date_thesis(
+                            prediction.probability, prediction.confidence, group.markets,
+                        )
 
-                # Log to history for calibration
-                from polymarket_predictor.calibrator.history import PredictionRecord
-                history.log_prediction(PredictionRecord(
-                    market_id=slug,
-                    question=market.question,
-                    predicted_prob=prediction.probability,
-                    market_prob=yes_price,
-                    ensemble_std=0.0,
-                    signal=result.signal,
-                    reliability=prediction.confidence,
-                    num_variants=1,
-                ))
+                    push_log(
+                        f"  Thesis applied to {len(tier_predictions)} tiers "
+                        f"(thesis={prediction.probability:.1%})",
+                        level="info",
+                    )
+
+                    # Process each tier prediction
+                    for tp in tier_predictions:
+                        result = PredictionResult(
+                            market_id=tp.market_slug,
+                            slug=tp.market_slug,
+                            question=tp.question,
+                            market_odds=tp.market_odds,
+                            status="completed",
+                            prediction=tp.predicted_probability,
+                            edge=tp.edge,
+                            confidence=tp.confidence,
+                            signal=tp.side if tp.side != "SKIP" else "SKIP",
+                            duration_seconds=round(elapsed / len(tier_predictions), 1),
+                            completed_at=datetime.now(timezone.utc).isoformat(),
+                            cost_usd=round(prediction_cost / len(tier_predictions), 4),
+                        )
+
+                        # Bet on each tier if edge is sufficient
+                        abs_edge = abs(tp.edge)
+                        if abs_edge >= 0.03 and tp.side != "SKIP":
+                            # Find the actual market object for this tier
+                            tier_market = next((m for m in group.markets if m.slug == tp.market_slug), None)
+                            bet_info = sizer.size_bet(
+                                portfolio.balance, tp.predicted_probability, tp.market_odds,
+                                abs_edge, tp.confidence,
+                            )
+                            if bet_info["amount"] > 0 and tier_market:
+                                closes_at = ""
+                                if tier_market.end_date:
+                                    closes_at = tier_market.end_date.isoformat()
+                                portfolio.place_bet(
+                                    market_id=tp.market_slug, slug=tp.market_slug,
+                                    question=tp.question,
+                                    side=tp.side, amount=bet_info["amount"],
+                                    odds=tp.market_odds, closes_at=closes_at,
+                                    prediction=tp.predicted_probability,
+                                    edge=abs_edge, confidence=tp.confidence,
+                                    mode="deep",
+                                    kelly_fraction=bet_info.get("kelly_fraction", 0.0),
+                                    cost_usd=result.cost_usd,
+                                )
+                                result.side = tp.side
+                                result.bet_amount = bet_info["amount"]
+                                result.bet_placed = True
+                                push_log(
+                                    f"    TIER BET: ${bet_info['amount']:.2f} {tp.side} on "
+                                    f"{tp.question[:40]}... (edge={abs_edge:.1%})",
+                                    level="success",
+                                )
+
+                        # Log to history for calibration
+                        from polymarket_predictor.calibrator.history import PredictionRecord
+                        history.log_prediction(PredictionRecord(
+                            market_id=tp.market_slug,
+                            question=tp.question,
+                            predicted_prob=tp.predicted_probability,
+                            market_prob=tp.market_odds,
+                            ensemble_std=0.0,
+                            signal=result.signal,
+                            reliability=tp.confidence,
+                            num_variants=1,
+                        ))
+
+                        state.results.append(asdict(result))
+
+                else:
+                    # Single-market group — same as before
+                    result = PredictionResult(
+                        market_id=representative.slug,
+                        slug=representative.slug,
+                        question=representative.question,
+                        market_odds=yes_price,
+                        status="completed",
+                        prediction=prediction.probability,
+                        edge=round(prediction.probability - yes_price, 4),
+                        confidence=prediction.confidence,
+                        duration_seconds=round(elapsed, 1),
+                        completed_at=datetime.now(timezone.utc).isoformat(),
+                        cost_usd=prediction_cost,
+                    )
+                    result.signal = "BUY_YES" if result.edge > 0.03 else ("BUY_NO" if result.edge < -0.03 else "SKIP")
+
+                    push_log(
+                        f"[{prediction_num}/{state.total_target}] {representative.question[:40]}... "
+                        f"pred={prediction.probability:.1%} vs market={yes_price:.1%} "
+                        f"edge={result.edge:+.1%} ({elapsed:.0f}s, ~${result.cost_usd:.2f})",
+                        level="success",
+                    )
+
+                    abs_edge = abs(result.edge)
+                    if abs_edge >= 0.03:
+                        side = "YES" if result.edge > 0 else "NO"
+                        bet_info = sizer.size_bet(
+                            portfolio.balance, prediction.probability, yes_price,
+                            abs_edge, prediction.confidence,
+                        )
+                        if bet_info["amount"] > 0:
+                            closes_at = ""
+                            if representative.end_date:
+                                closes_at = representative.end_date.isoformat()
+                            portfolio.place_bet(
+                                market_id=representative.slug, slug=representative.slug,
+                                question=representative.question,
+                                side=side, amount=bet_info["amount"], odds=yes_price,
+                                closes_at=closes_at,
+                                prediction=prediction.probability,
+                                edge=abs_edge,
+                                confidence=prediction.confidence,
+                                mode="deep",
+                                kelly_fraction=bet_info.get("kelly_fraction", 0.0),
+                                cost_usd=result.cost_usd,
+                            )
+                            result.side = side
+                            result.bet_amount = bet_info["amount"]
+                            result.bet_placed = True
+                            push_log(f"  BET PLACED: ${bet_info['amount']:.2f} {side} (edge={abs_edge:.1%})", level="success")
+
+                    # Log to history for calibration
+                    from polymarket_predictor.calibrator.history import PredictionRecord
+                    history.log_prediction(PredictionRecord(
+                        market_id=representative.slug,
+                        question=representative.question,
+                        predicted_prob=prediction.probability,
+                        market_prob=yes_price,
+                        ensemble_std=0.0,
+                        signal=result.signal,
+                        reliability=prediction.confidence,
+                        num_variants=1,
+                    ))
+
+                    state.results.append(asdict(result))
 
                 state.completed += 1
-                state.total_cost_usd += result.cost_usd
+                state.total_cost_usd += prediction_cost
 
             except Exception as e:
                 elapsed = time.time() - start_time
-                logger.exception("Prediction failed for %s", slug)
-                result.status = "failed"
-                result.error = str(e)
-                result.duration_seconds = round(elapsed, 1)
+                logger.exception("Prediction failed for group %s", group.group_id)
+                result = PredictionResult(
+                    market_id=representative.slug,
+                    slug=representative.slug,
+                    question=group.thesis_question,
+                    market_odds=yes_price,
+                    status="failed",
+                    error=str(e),
+                    duration_seconds=round(elapsed, 1),
+                )
+                state.results.append(asdict(result))
                 state.failed += 1
                 state.errors.append({
-                    "market": slug,
+                    "market": representative.slug,
+                    "group_id": group.group_id,
                     "error": str(e),
                     "phase": state.current_phase,
                     "time": time.strftime("%H:%M:%S"),
                 })
-                push_log(f"[{prediction_num}/{state.total_target}] FAILED: {slug} — {e}", level="error")
+                push_log(f"[{prediction_num}/{state.total_target}] FAILED: {group.group_id} — {e}", level="error")
 
-            # --- Checkpoint after every prediction ---
-            state.results.append(asdict(result))
+            # --- Checkpoint after every group prediction ---
             state.current_market = None
             state.current_phase = ""
-            self._sm.checkpoint(state, f"Prediction {prediction_num} {'completed' if result.status == 'completed' else 'failed'}")
+            self._sm.checkpoint(state, f"Group {prediction_num} {'completed' if state.failed == 0 else 'had failures'}")
 
             # --- Phase 4: Resolve any completed bets ---
             state.current_phase = "resolving"
