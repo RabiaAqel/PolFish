@@ -28,7 +28,10 @@ MIN_EDGE_THRESHOLD = float(os.environ.get("PREDICTOR_MIN_EDGE", "0.10"))  # 10% 
 MIN_VOLUME_THRESHOLD = float(os.environ.get("PREDICTOR_MIN_VOLUME", "10000"))  # $10k volume
 
 # Template agent injection cap (organic + templates = total agent count)
-# Default 15 for ~25-30 total agents. Set MAX_TEMPLATE_AGENTS=50 for richer sims, =5 for fast/cheap.
+# For rapid calibration: MAX_TEMPLATE_AGENTS=5
+# For standard runs: MAX_TEMPLATE_AGENTS=15 (default)
+# For WEEX-scale simulation: MAX_TEMPLATE_AGENTS=170
+# Total agents = organic (from graph) + templates
 MAX_TEMPLATE_AGENTS = int(os.environ.get("MAX_TEMPLATE_AGENTS", "15"))
 
 # LLM (for prediction extraction fallback)

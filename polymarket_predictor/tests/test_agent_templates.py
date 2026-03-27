@@ -100,3 +100,55 @@ def test_devils_advocate_high_activity():
     devils = [t for t in templates if t["type"] == "DevilsAdvocate"]
     for d in devils:
         assert d["activity_level"] >= 0.5, f"{d['name']} activity too low"
+
+
+# =========================================================================
+# WEEX-scale composition tests (200 agents)
+# =========================================================================
+
+
+def test_total_templates_at_least_200():
+    """Should have 200+ templates for WEEX-scale simulations."""
+    templates = get_templates(max_agents=300)
+    assert len(templates) >= 200, f"Only {len(templates)} templates, need 200+"
+
+
+def test_weex_composition_civilians():
+    """~70% should be civilian/retail types."""
+    templates = get_templates(max_agents=200)
+    civilian_types = {"RetailTrader", "DayTrader", "SwingTrader", "LongTermInvestor",
+                      "Student", "Retiree", "TechWorker", "SmallBusinessOwner",
+                      "Freelancer", "ServiceWorker", "Teacher", "HealthcareWorker",
+                      "Lawyer", "Creative", "GeneralPublic", "MomentumTrader"}
+    civilians = [t for t in templates if t["type"] in civilian_types]
+    ratio = len(civilians) / len(templates)
+    assert ratio >= 0.55, f"Civilian ratio {ratio:.0%} too low (need 55%+)"
+
+
+def test_weex_composition_experts():
+    """~10% should be expert/high-influence types."""
+    templates = get_templates(max_agents=200)
+    expert_types = {"DomainExpert", "Economist", "DataScientist", "Historian",
+                    "Psychologist", "HedgeFundManager", "VentureCapitalist",
+                    "GovernmentAdvisor", "CentralBankWatcher", "InsuranceActuary"}
+    experts = [t for t in templates if t["type"] in expert_types]
+    assert len(experts) >= 15, f"Only {len(experts)} experts, need 15+"
+
+
+def test_stance_balance():
+    """Stance should be roughly 30/30/40 across all templates."""
+    templates = get_templates(max_agents=200)
+    bullish = sum(1 for t in templates if t["stance"] == "bullish")
+    bearish = sum(1 for t in templates if t["stance"] == "bearish")
+    neutral = sum(1 for t in templates if t["stance"] == "neutral")
+    total = len(templates)
+    assert 0.20 <= bullish / total <= 0.40, f"Bullish {bullish / total:.0%} out of range"
+    assert 0.20 <= bearish / total <= 0.40, f"Bearish {bearish / total:.0%} out of range"
+    assert 0.30 <= neutral / total <= 0.50, f"Neutral {neutral / total:.0%} out of range"
+
+
+def test_unique_names_200():
+    """All 200 agents should have unique names."""
+    templates = get_templates(max_agents=300)
+    names = [t["name"] for t in templates]
+    assert len(names) == len(set(names)), "Duplicate agent names found"
