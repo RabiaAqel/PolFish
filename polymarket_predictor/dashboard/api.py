@@ -457,6 +457,36 @@ def _run_deep_pipeline(task_id: str, slug: str, variants: int) -> None:
     try:
         result = asyncio.run(_execute())
         push_log(f"Deep prediction complete: signal={result['prediction']['signal']}, edge={result['prediction']['edge']:+.2%}", level="success")
+
+        # Auto-place paper bet if edge is sufficient
+        try:
+            pred = result["prediction"]
+            mkt = result["market"]
+            abs_edge = abs(pred["edge"])
+            if pred["signal"] != "SKIP" and abs_edge >= 0.03:
+                from polymarket_predictor.paper_trader.portfolio import BetSizer
+                sizer = BetSizer()
+                side = "YES" if pred["edge"] > 0 else "NO"
+                confidence = (pred.get("variant_details", [{}])[0].get("confidence", "medium")) if pred.get("variant_details") else "medium"
+                bet_info = sizer.size_bet(
+                    _portfolio.balance, pred["probability"], mkt["current_odds"],
+                    abs_edge, confidence,
+                )
+                if bet_info["amount"] > 0:
+                    _portfolio.place_bet(
+                        market_id=mkt["slug"], slug=mkt["slug"],
+                        question=mkt["question"], side=side,
+                        amount=bet_info["amount"], odds=mkt["current_odds"],
+                        prediction=pred["probability"],
+                        edge=abs_edge, confidence=confidence,
+                        mode="deep",
+                        kelly_fraction=bet_info.get("kelly_fraction", 0),
+                    )
+                    push_log(f"BET PLACED: ${bet_info['amount']:.2f} {side} on {mkt['slug'][:40]} (edge={abs_edge:.1%})", level="success")
+                    result["bet_placed"] = {"side": side, "amount": bet_info["amount"]}
+        except Exception as bet_err:
+            logger.warning("Auto-bet failed: %s", bet_err)
+
         _deep_tasks[task_id].update({"status": "completed", "step": "completed", "result": result})
     except Exception as exc:
         logger.exception("Deep prediction task %s failed", task_id)
