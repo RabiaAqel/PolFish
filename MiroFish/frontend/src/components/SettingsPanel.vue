@@ -18,6 +18,7 @@
           <!-- Pipeline Tab -->
           <div v-if="activeTab === 'pipeline'" class="tab-content">
             <label class="field-label">Pipeline Preset</label>
+            <p class="field-desc">Each prediction runs through 5 stages. Presets control which AI model handles each stage — cheaper models for simple tasks, powerful models where reasoning matters.</p>
             <div class="preset-list">
               <label
                 v-for="(info, name) in presets"
@@ -26,15 +27,29 @@
                 :class="{ active: selectedPreset === name }"
               >
                 <input type="radio" v-model="selectedPreset" :value="name" />
-                <span class="preset-name">{{ name }}</span>
-                <span class="preset-cost">~${{ presetCosts[name] || '?' }}/pred</span>
+                <div class="preset-info">
+                  <span class="preset-name">{{ name }}</span>
+                  <span class="preset-detail">{{ presetDescriptions[name] || '' }}</span>
+                </div>
+                <span class="preset-cost">~${{ presetCosts[name] || '?' }}</span>
               </label>
             </div>
 
+            <div v-if="selectedPreset" class="preset-composition">
+              <p class="comp-title">Model composition for <strong>{{ selectedPreset }}</strong>:</p>
+              <div class="comp-grid">
+                <div class="comp-row" v-for="(model, stage) in presetModels[selectedPreset] || {}" :key="stage">
+                  <span class="comp-stage">{{ stage }}</span>
+                  <span class="comp-model">{{ model }}</span>
+                </div>
+              </div>
+            </div>
+
             <label class="field-label">Prediction Method</label>
+            <p class="field-desc">How the final probability is calculated from the simulation. Combined blends LLM report analysis with quantitative data extraction — weights auto-adjust based on accuracy.</p>
             <div class="radio-group">
               <label class="radio-option" :class="{ active: custom.prediction_method === 'combined' }">
-                <input type="radio" v-model="custom.prediction_method" value="combined" /> Combined
+                <input type="radio" v-model="custom.prediction_method" value="combined" /> Combined (recommended)
               </label>
               <label class="radio-option" :class="{ active: custom.prediction_method === 'llm_only' }">
                 <input type="radio" v-model="custom.prediction_method" value="llm_only" /> LLM Only
@@ -44,7 +59,8 @@
               </label>
             </div>
 
-            <label class="field-label">Max Rounds</label>
+            <label class="field-label">Simulation Rounds</label>
+            <p class="field-desc">How many rounds agents debate. More rounds = deeper opinion evolution but slower and costlier. 15 for testing, 40 for production.</p>
             <div class="chip-group">
               <button v-for="v in [15, 25, 40, 60]" :key="v" class="chip-btn" :class="{ active: custom.max_rounds === v }" @click="custom.max_rounds = v">{{ v }}</button>
             </div>
@@ -53,21 +69,24 @@
           <!-- Trading Tab -->
           <div v-if="activeTab === 'trading'" class="tab-content">
             <label class="field-label">Engine Mode</label>
+            <p class="field-desc">Quick scans markets and bets using market odds + noise (free, for testing). Autopilot runs full MiroFish deep simulations on top candidates before betting.</p>
             <div class="radio-group">
               <label class="radio-option" :class="{ active: custom.engine_mode === 'quick' }">
-                <input type="radio" v-model="custom.engine_mode" value="quick" /> Quick (free)
+                <input type="radio" v-model="custom.engine_mode" value="quick" /> Quick (free, no real edge)
               </label>
               <label class="radio-option" :class="{ active: custom.engine_mode === 'autopilot' }">
-                <input type="radio" v-model="custom.engine_mode" value="autopilot" /> Autopilot (~$12/cycle)
+                <input type="radio" v-model="custom.engine_mode" value="autopilot" /> Autopilot (deep simulation)
               </label>
             </div>
 
             <label class="field-label">Kelly Factor</label>
+            <p class="field-desc">Controls bet sizing aggressiveness. 0.10 = very conservative (1/10th Kelly), 0.25 = standard quarter-Kelly, 0.50 = aggressive. Lower is safer when prediction accuracy is uncertain.</p>
             <div class="chip-group">
               <button v-for="v in [0.10, 0.15, 0.25, 0.50]" :key="v" class="chip-btn" :class="{ active: strategy.kelly_factor === v }" @click="strategy.kelly_factor = v">{{ v }}</button>
             </div>
 
             <label class="field-label">Min Edge for Bet</label>
+            <p class="field-desc">Only bet when the predicted edge exceeds this threshold. Higher = fewer but higher-conviction bets. 3% for aggressive, 5-8% for conservative.</p>
             <div class="stepper">
               <button class="stepper-btn" @click="autopilot.min_edge_for_bet = Math.max(0, round2(autopilot.min_edge_for_bet - 0.01))">-</button>
               <span class="stepper-value">{{ (autopilot.min_edge_for_bet * 100).toFixed(0) }}%</span>
@@ -75,11 +94,13 @@
             </div>
 
             <label class="field-label">Min Volume</label>
+            <p class="field-desc">Skip markets below this trading volume. Low volume = illiquid (hard to trade). Sweet spot: $500-$5K for niche markets.</p>
             <div class="chip-group">
               <button v-for="v in [100, 500, 1000, 5000, 10000]" :key="v" class="chip-btn" :class="{ active: autopilot.min_volume === v }" @click="autopilot.min_volume = v">${{ v >= 1000 ? (v/1000) + 'K' : v }}</button>
             </div>
 
             <label class="field-label">Niche Focus</label>
+            <p class="field-desc">Prioritize niche markets (geopolitics, obscure politics) where MiroFish has the best chance of finding edge over the crowd.</p>
             <div class="toggle-row">
               <button class="toggle-btn" :class="{ active: autopilot.niche_focus }" @click="autopilot.niche_focus = true">ON</button>
               <button class="toggle-btn" :class="{ active: !autopilot.niche_focus }" @click="autopilot.niche_focus = false">OFF</button>
@@ -88,33 +109,41 @@
 
           <!-- Keys Tab -->
           <div v-if="activeTab === 'keys'" class="tab-content">
+            <p class="field-desc" style="margin-bottom:16px">API keys connect PolFish to the AI providers that power predictions. At minimum you need OpenAI + Zep. DeepSeek is recommended for cost savings.</p>
             <div v-for="(configured, name) in apiKeys" :key="name" class="api-key-row">
               <span class="api-key-status" :class="configured ? 'status-ok' : 'status-missing'">{{ configured ? '&#10003;' : '&#10007;' }}</span>
-              <span class="api-key-name">{{ apiKeyLabels[name] || name }}</span>
-              <span class="api-key-state">{{ configured ? 'Configured' : 'Missing' }}</span>
+              <div class="api-key-info">
+                <span class="api-key-name">{{ apiKeyLabels[name] || name }}</span>
+                <span class="api-key-usage">{{ apiKeyUsage[name] || '' }}</span>
+              </div>
+              <span class="api-key-state">{{ configured ? 'Connected' : 'Not set' }}</span>
             </div>
-            <p class="env-hint">API keys are read from environment variables. Edit your <code>.env</code> file to add or change keys.</p>
+            <p class="env-hint">Keys are read from <code>MiroFish/.env</code>. Restart the backend after changes.</p>
           </div>
 
           <!-- Advanced Tab -->
           <div v-if="activeTab === 'advanced'" class="tab-content">
             <label class="field-label">Cash Reserve</label>
+            <p class="field-desc">Minimum cash to keep unallocated. Prevents the portfolio from going all-in. 20% is standard.</p>
             <div class="chip-group">
               <button v-for="v in [0.10, 0.15, 0.20, 0.25, 0.30]" :key="v" class="chip-btn" :class="{ active: custom.cash_reserve === v }" @click="custom.cash_reserve = v">{{ (v * 100).toFixed(0) }}%</button>
             </div>
 
             <label class="field-label">Max Sector Exposure</label>
+            <p class="field-desc">Maximum portfolio allocation to any single sector (crypto, politics, etc.). Prevents concentration risk — no more 70% in crude oil.</p>
             <div class="chip-group">
               <button v-for="v in [0.20, 0.30, 0.40, 0.50]" :key="v" class="chip-btn" :class="{ active: custom.max_sector_exposure === v }" @click="custom.max_sector_exposure = v">{{ (v * 100).toFixed(0) }}%</button>
             </div>
 
             <label class="field-label">Deep Research</label>
+            <p class="field-desc">Enrich seed documents with Wikipedia context, CoinGecko price data, and per-entity research. Produces 5-10x richer seeds but takes longer.</p>
             <div class="toggle-row">
               <button class="toggle-btn" :class="{ active: custom.deep_research }" @click="custom.deep_research = true">ON</button>
               <button class="toggle-btn" :class="{ active: !custom.deep_research }" @click="custom.deep_research = false">OFF</button>
             </div>
 
             <label class="field-label">Agent Diversity</label>
+            <p class="field-desc">Assign varied stances (bullish/bearish/neutral), influence weights, and activity levels to agents. Creates more realistic market dynamics instead of uniform agents.</p>
             <div class="toggle-row">
               <button class="toggle-btn" :class="{ active: custom.agent_diversity }" @click="custom.agent_diversity = true">ON</button>
               <button class="toggle-btn" :class="{ active: !custom.agent_diversity }" @click="custom.agent_diversity = false">OFF</button>
@@ -176,6 +205,36 @@ const custom = reactive({
 
 const apiKeys = ref({})
 const apiKeyLabels = { openai: 'OpenAI', deepseek: 'DeepSeek', gemini: 'Gemini', anthropic: 'Anthropic', ollama: 'Ollama (Local)', zep: 'Zep (Memory)' }
+const apiKeyUsage = {
+  openai: 'Simulation rounds + report generation (GPT-4o/mini)',
+  deepseek: 'Ontology + graph building (cheap preprocessing)',
+  gemini: 'Agent profile generation (optional)',
+  anthropic: 'Premium simulation alternative (Claude)',
+  ollama: 'Free local models for simulation',
+  zep: 'Knowledge graph storage + entity memory',
+}
+
+const presetDescriptions = {
+  balanced: 'DeepSeek preprocessing + GPT-4o simulation/report',
+  budget: 'DeepSeek preprocessing + GPT-4o-mini everywhere',
+  premium: 'DeepSeek + Gemini + Claude simulation + GPT-4o report',
+  cheapest: 'All DeepSeek — minimal cost',
+  best: 'All GPT-4o — maximum quality',
+  gemini: 'All Gemini Flash — Google models',
+  local: 'All Ollama — runs on your machine, free',
+  hybrid_local: 'Ollama simulation + GPT-4o report — nearly free',
+}
+
+const presetModels = {
+  balanced: { Ontology: 'deepseek-chat', Graph: 'deepseek-chat', Profiles: 'gemini-2.5-flash-lite', Simulation: 'gpt-4o', Report: 'gpt-4o' },
+  budget: { Ontology: 'deepseek-chat', Graph: 'deepseek-chat', Profiles: 'deepseek-chat', Simulation: 'gpt-4o-mini', Report: 'gpt-4o-mini' },
+  premium: { Ontology: 'deepseek-chat', Graph: 'deepseek-chat', Profiles: 'gemini-2.5-flash-lite', Simulation: 'claude-sonnet-4', Report: 'gpt-4o' },
+  cheapest: { Ontology: 'deepseek-chat', Graph: 'deepseek-chat', Profiles: 'deepseek-chat', Simulation: 'deepseek-chat', Report: 'deepseek-chat' },
+  best: { Ontology: 'gpt-4o', Graph: 'gpt-4o', Profiles: 'gpt-4o', Simulation: 'gpt-4o', Report: 'gpt-4o' },
+  gemini: { Ontology: 'gemini-2.5-flash', Graph: 'gemini-2.5-flash', Profiles: 'gemini-2.5-flash', Simulation: 'gemini-2.5-flash', Report: 'gemini-2.5-flash' },
+  local: { Ontology: 'llama3.1:8b', Graph: 'llama3.1:8b', Profiles: 'llama3.1:8b', Simulation: 'llama3.1:8b', Report: 'llama3.1:8b' },
+  hybrid_local: { Ontology: 'llama3.1:8b', Graph: 'llama3.1:8b', Profiles: 'llama3.1:8b', Simulation: 'llama3.1:8b', Report: 'gpt-4o' },
+}
 
 const round2 = (v) => Math.round(v * 100) / 100
 
@@ -527,6 +586,65 @@ onMounted(fetchSettings)
 
 .toast-enter-active, .toast-leave-active { transition: all 0.3s; }
 .toast-enter-from, .toast-leave-to { opacity: 0; transform: translateY(10px); }
+
+.field-desc {
+  font-size: 12px;
+  color: #888;
+  margin: -4px 0 10px;
+  line-height: 1.5;
+}
+.preset-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+.preset-detail {
+  font-size: 11px;
+  color: #999;
+  margin-top: 2px;
+}
+.preset-composition {
+  background: #f8f8f8;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  padding: 12px;
+  margin: 8px 0 16px;
+}
+.comp-title {
+  font-size: 12px;
+  color: #666;
+  margin: 0 0 8px;
+}
+.comp-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.comp-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+}
+.comp-stage {
+  color: #999;
+  text-transform: capitalize;
+}
+.comp-model {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #333;
+}
+.api-key-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.api-key-usage {
+  font-size: 11px;
+  color: #999;
+  margin-top: 1px;
+}
 
 @media (max-width: 480px) {
   .settings-panel {

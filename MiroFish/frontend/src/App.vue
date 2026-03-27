@@ -20,7 +20,6 @@
             <router-link to="/research/knowledge" class="dropdown-item" @click="researchOpen = false">Knowledge Base</router-link>
             <router-link to="/research/backtest" class="dropdown-item" @click="researchOpen = false">Backtest Lab</router-link>
             <router-link to="/research/decisions" class="dropdown-item" @click="researchOpen = false">Decision Log</router-link>
-            <router-link to="/research/how-it-works" class="dropdown-item" @click="researchOpen = false">How It Works</router-link>
           </div>
         </div>
       </div>
@@ -61,7 +60,6 @@
       <router-link to="/research/knowledge" class="mobile-link mobile-sub" @click="mobileMenuOpen = false">Knowledge Base</router-link>
       <router-link to="/research/backtest" class="mobile-link mobile-sub" @click="mobileMenuOpen = false">Backtest Lab</router-link>
       <router-link to="/research/decisions" class="mobile-link mobile-sub" @click="mobileMenuOpen = false">Decision Log</router-link>
-      <router-link to="/research/how-it-works" class="mobile-link mobile-sub" @click="mobileMenuOpen = false">How It Works</router-link>
       <div class="mobile-divider"></div>
       <button class="mobile-link" @click="showSettings = true; mobileMenuOpen = false">Settings</button>
     </div>
