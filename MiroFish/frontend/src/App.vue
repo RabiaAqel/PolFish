@@ -3,34 +3,76 @@
     <!-- Global Navbar -->
     <nav class="global-nav">
       <div class="nav-left">
-        <div class="brand-switcher" @click="toggleMode">
-          <span class="brand-name">{{ isPolFish ? 'POLFISH' : 'MIROFISH' }}</span>
-          <span class="brand-arrow">⇄</span>
+        <router-link to="/predict" class="brand-logo">POLFISH</router-link>
+      </div>
+
+      <!-- Desktop Nav -->
+      <div class="nav-center" v-if="isPolFish">
+        <router-link to="/predict" class="nav-link" :class="{ active: route.path.startsWith('/predict') }">Predict</router-link>
+        <router-link to="/trade" class="nav-link" :class="{ active: route.path === '/trade' }">
+          Trade <span class="nav-badge">PAPER</span>
+        </router-link>
+        <div class="nav-dropdown" @mouseenter="researchOpen = true" @mouseleave="researchOpen = false">
+          <button class="nav-link dropdown-trigger" :class="{ active: route.path.startsWith('/research') }">
+            Research <span class="dropdown-caret">&#9662;</span>
+          </button>
+          <div v-show="researchOpen" class="dropdown-menu">
+            <router-link to="/research/knowledge" class="dropdown-item" @click="researchOpen = false">Knowledge Base</router-link>
+            <router-link to="/research/backtest" class="dropdown-item" @click="researchOpen = false">Backtest Lab</router-link>
+            <router-link to="/research/decisions" class="dropdown-item" @click="researchOpen = false">Decision Log</router-link>
+            <router-link to="/research/how-it-works" class="dropdown-item" @click="researchOpen = false">How It Works</router-link>
+          </div>
         </div>
       </div>
-      <div class="nav-links">
-        <template v-if="isPolFish">
-          <router-link to="/">Predictor</router-link>
-          <router-link to="/paper-trading">Paper Trading</router-link>
-          <router-link to="/decisions">Decision Log</router-link>
-          <router-link to="/knowledge">Knowledge</router-link>
-          <router-link to="/backtest">Backtest</router-link>
-          <router-link to="/how-it-works">How It Works</router-link>
-          <router-link to="/settings">Settings</router-link>
-        </template>
-        <template v-else>
-          <router-link to="/home">Home</router-link>
-        </template>
+      <div class="nav-center" v-else>
+        <router-link to="/home" class="nav-link">Home</router-link>
       </div>
+
+      <div class="nav-right">
+        <button class="nav-icon-btn" @click="showSettings = true" title="Settings">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+        <div class="nav-dropdown help-dropdown" @mouseenter="helpOpen = true" @mouseleave="helpOpen = false">
+          <button class="nav-icon-btn" title="Help">?</button>
+          <div v-show="helpOpen" class="dropdown-menu dropdown-right">
+            <router-link to="/research/how-it-works" class="dropdown-item" @click="helpOpen = false">How It Works</router-link>
+            <a href="https://github.com/mirofish" target="_blank" rel="noopener" class="dropdown-item" @click="helpOpen = false">Documentation</a>
+            <div class="dropdown-divider"></div>
+            <div class="dropdown-item dropdown-info">Keyboard Shortcuts: coming soon</div>
+          </div>
+        </div>
+        <div class="brand-switcher" @click="toggleMode" title="Switch to MiroFish">
+          <span class="brand-arrow">&#8652;</span>
+        </div>
+      </div>
+
+      <!-- Mobile hamburger -->
+      <button class="hamburger" @click="mobileMenuOpen = !mobileMenuOpen" v-if="isPolFish">
+        <span></span><span></span><span></span>
+      </button>
     </nav>
 
+    <!-- Mobile Menu -->
+    <div v-if="mobileMenuOpen && isPolFish" class="mobile-menu">
+      <router-link to="/predict" class="mobile-link" @click="mobileMenuOpen = false">Predict</router-link>
+      <router-link to="/trade" class="mobile-link" @click="mobileMenuOpen = false">Trade</router-link>
+      <div class="mobile-divider"></div>
+      <div class="mobile-label">Research</div>
+      <router-link to="/research/knowledge" class="mobile-link mobile-sub" @click="mobileMenuOpen = false">Knowledge Base</router-link>
+      <router-link to="/research/backtest" class="mobile-link mobile-sub" @click="mobileMenuOpen = false">Backtest Lab</router-link>
+      <router-link to="/research/decisions" class="mobile-link mobile-sub" @click="mobileMenuOpen = false">Decision Log</router-link>
+      <router-link to="/research/how-it-works" class="mobile-link mobile-sub" @click="mobileMenuOpen = false">How It Works</router-link>
+      <div class="mobile-divider"></div>
+      <button class="mobile-link" @click="showSettings = true; mobileMenuOpen = false">Settings</button>
+    </div>
+
     <!-- Main Content -->
-    <div class="main-content" :class="{ 'log-collapsed': logMinimized }">
+    <div class="main-content" :class="{ 'log-collapsed': logMinimized || !showLogs }">
       <router-view />
     </div>
 
-    <!-- Sticky Live Log Panel -->
-    <div class="live-log-panel" :class="{ minimized: logMinimized }">
+    <!-- Sticky Live Log Panel (contextual) -->
+    <div v-if="showLogs" class="live-log-panel" :class="{ minimized: logMinimized }">
       <div class="log-header" @click="logMinimized = !logMinimized">
         <span class="log-dot" :class="{ active: logEntries.length > 0 }"></span>
         <span>Live Logs</span>
@@ -44,24 +86,43 @@
         </div>
       </div>
     </div>
+
+    <!-- Settings Panel -->
+    <SettingsPanel v-if="showSettings" @close="showSettings = false" />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import SettingsPanel from './components/SettingsPanel.vue'
 
 const router = useRouter()
+const route = useRoute()
 const isPolFish = ref(true)
 
 const toggleMode = () => {
   isPolFish.value = !isPolFish.value
   if (isPolFish.value) {
-    router.push('/')
+    router.push('/predict')
   } else {
     router.push('/home')
   }
 }
+
+// Nav state
+const researchOpen = ref(false)
+const helpOpen = ref(false)
+const mobileMenuOpen = ref(false)
+const showSettings = ref(false)
+
+// Contextual log visibility
+const showLogs = computed(() => {
+  const path = route.path
+  return path.startsWith('/predict') ||
+         path === '/trade' ||
+         path === '/research/backtest'
+})
 
 const logMinimized = ref(false)
 const logEntries = ref([])
@@ -82,7 +143,6 @@ const startLogStream = () => {
       try {
         const entry = JSON.parse(event.data)
         logEntries.value.push(entry)
-        // Keep last 500 entries
         if (logEntries.value.length > 500) {
           logEntries.value = logEntries.value.slice(-500)
         }
@@ -93,9 +153,7 @@ const startLogStream = () => {
         })
       } catch { /* ignore parse errors */ }
     }
-    logSource.onerror = () => {
-      // Will auto-reconnect
-    }
+    logSource.onerror = () => { /* Will auto-reconnect */ }
   } catch { /* ignore connection errors */ }
 }
 
@@ -169,72 +227,286 @@ button {
   color: #ffffff;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 32px;
+  padding: 0 24px;
   z-index: 1000;
   font-family: 'JetBrains Mono', monospace;
+  gap: 0;
 }
 
 .nav-left {
   display: flex;
   align-items: center;
+  margin-right: 32px;
 }
 
-.brand-switcher {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  user-select: none;
-  transition: opacity 0.15s;
-}
-
-.brand-switcher:hover {
-  opacity: 0.8;
-}
-
-.brand-switcher:hover .brand-arrow {
-  opacity: 1;
-  color: #FF4500;
-}
-
-.brand-name {
+.brand-logo {
   font-family: 'JetBrains Mono', monospace;
   font-weight: 800;
   font-size: 16px;
   letter-spacing: 2px;
   color: #ffffff;
+  text-decoration: none;
+  transition: color 0.15s;
 }
 
-.brand-arrow {
-  font-size: 14px;
-  color: #666;
-  opacity: 0.5;
-  transition: all 0.15s;
+.brand-logo:hover {
+  color: #FF4500;
 }
 
-.nav-links {
+/* Center nav links */
+.nav-center {
   display: flex;
-  gap: 28px;
+  align-items: center;
+  gap: 0;
+  flex: 1;
 }
 
-.nav-links a {
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   text-decoration: none;
   color: #888888;
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.5px;
   transition: color 0.15s;
-  padding: 4px 0;
+  padding: 16px 16px;
+  height: 56px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+  white-space: nowrap;
 }
 
-.nav-links a:hover {
+.nav-link:hover {
   color: #cccccc;
 }
 
-.nav-links a.router-link-active,
-.nav-links a.router-link-exact-active {
+.nav-link.active,
+.nav-link.router-link-active {
   color: #FF4500;
+}
+
+.nav-badge {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 1px 5px;
+  background: #FF4500;
+  color: #fff;
+  border-radius: 2px;
+  line-height: 1.2;
+}
+
+/* Research dropdown */
+.nav-dropdown {
+  position: relative;
+}
+
+.dropdown-trigger {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dropdown-caret {
+  font-size: 8px;
+  transition: transform 0.15s;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 200px;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  padding: 4px 0;
+  z-index: 1100;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.dropdown-menu.dropdown-right {
+  left: auto;
+  right: 0;
+}
+
+.dropdown-item {
+  display: block;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #ccc;
+  text-decoration: none;
+  transition: all 0.1s;
+  font-family: 'JetBrains Mono', monospace;
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+}
+
+.dropdown-item:hover {
+  background: #333;
+  color: #fff;
+}
+
+.dropdown-item.router-link-active {
+  color: #FF4500;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: #333;
+  margin: 4px 0;
+}
+
+.dropdown-info {
+  color: #666;
+  font-size: 11px;
+  cursor: default;
+}
+
+.dropdown-info:hover {
+  background: transparent;
+  color: #666;
+}
+
+/* Right icons */
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.nav-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #888;
+  font-size: 16px;
+  font-weight: 700;
+  border-radius: 4px;
+  transition: all 0.15s;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.nav-icon-btn:hover {
+  color: #fff;
+  background: #333;
+}
+
+.brand-switcher {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+
+.brand-switcher:hover {
+  background: #333;
+}
+
+.brand-switcher:hover .brand-arrow {
+  color: #FF4500;
+}
+
+.brand-arrow {
+  font-size: 16px;
+  color: #666;
+  transition: color 0.15s;
+}
+
+/* Hamburger */
+.hamburger {
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  margin-left: 8px;
+}
+
+.hamburger span {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: #fff;
+  border-radius: 1px;
+}
+
+/* Mobile menu */
+.mobile-menu {
+  position: fixed;
+  top: 56px;
+  left: 0;
+  right: 0;
+  background: #111;
+  z-index: 999;
+  padding: 8px 0;
+  border-bottom: 1px solid #333;
+  display: none;
+}
+
+.mobile-link {
+  display: block;
+  padding: 12px 24px;
+  color: #ccc;
+  text-decoration: none;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.1s;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mobile-link:hover {
+  background: #222;
+  color: #fff;
+}
+
+.mobile-link.router-link-active {
+  color: #FF4500;
+}
+
+.mobile-sub {
+  padding-left: 40px;
+  font-size: 12px;
+}
+
+.mobile-divider {
+  height: 1px;
+  background: #333;
+  margin: 4px 16px;
+}
+
+.mobile-label {
+  padding: 8px 24px 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 /* ========================================
@@ -358,5 +630,28 @@ button {
   font-style: italic;
   font-size: 12px;
   padding: 8px 0;
+}
+
+/* ========================================
+   Responsive
+   ======================================== */
+@media (max-width: 768px) {
+  .nav-center {
+    display: none;
+  }
+
+  .nav-right .nav-icon-btn,
+  .nav-right .brand-switcher,
+  .help-dropdown {
+    display: none;
+  }
+
+  .hamburger {
+    display: flex;
+  }
+
+  .mobile-menu {
+    display: block;
+  }
 }
 </style>

@@ -24,7 +24,11 @@ logger = logging.getLogger(__name__)
 
 # Skip if no API keys configured
 SKIP_REASON = "E2E test requires LLM_API_KEY and ZEP_API_KEY"
-HAS_KEYS = bool(os.environ.get("LLM_API_KEY")) and bool(os.environ.get("ZEP_API_KEY"))
+
+
+def _has_keys():
+    """Check at call time, not import time."""
+    return bool(os.environ.get("LLM_API_KEY")) and bool(os.environ.get("ZEP_API_KEY"))
 
 
 @pytest.mark.e2e
@@ -54,7 +58,8 @@ class TestE2ESmoke:
         elif "MAX_SIMULATION_ROUNDS" in os.environ:
             del os.environ["MAX_SIMULATION_ROUNDS"]
 
-    @pytest.mark.skipif(not HAS_KEYS, reason=SKIP_REASON)
+    @pytest.mark.skipif(not _has_keys(), reason=SKIP_REASON)
+    @pytest.mark.asyncio
     async def test_full_pipeline_smoke(self):
         """Run the complete pipeline: scan -> seed -> graph -> simulate -> report -> predict.
 
@@ -216,7 +221,8 @@ class TestE2ESmoke:
 class TestE2EMarketDiscovery:
     """Test that market discovery and grouping works with real data."""
 
-    @pytest.mark.skipif(not HAS_KEYS, reason="Requires network access")
+    @pytest.mark.skipif(not _has_keys(), reason="Requires network access")
+    @pytest.mark.asyncio
     async def test_scan_and_group_real_markets(self):
         """Scan real Polymarket markets and group them."""
         from polymarket_predictor.scanner.market_scanner import MarketScanner
@@ -248,6 +254,7 @@ class TestE2EMarketDiscovery:
 class TestE2ENewsResearch:
     """Test deep research with real news sources."""
 
+    @pytest.mark.asyncio
     async def test_deep_research_real(self):
         """Fetch real news for a market question."""
         from polymarket_predictor.scrapers.news import NewsAggregator

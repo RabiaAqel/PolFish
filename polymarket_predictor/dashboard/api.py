@@ -617,6 +617,7 @@ def portfolio_status():
                 "balance": portfolio.balance,
                 "total_value": portfolio.total_value,
                 "open_positions": [asdict(b) for b in portfolio.get_open_positions()],
+                "resolved_positions": [asdict(b) for b in portfolio.get_resolved_positions()],
                 "performance": portfolio.get_performance(),
             },
         }), 200
@@ -739,6 +740,34 @@ def portfolio_reset():
         return jsonify({
             "success": True,
             "data": {"balance": _portfolio.balance, "message": "Portfolio reset to $10,000"}
+        }), 200
+    except Exception as exc:
+        return jsonify({"success": False, "error": str(exc)}), 500
+
+
+@dashboard_bp.route("/prediction/<slug>", methods=["GET"])
+def prediction_detail(slug):
+    """Get full prediction detail for a market by slug or market_id."""
+    try:
+        from polymarket_predictor.paper_trader.portfolio import PaperPortfolio
+        portfolio = PaperPortfolio(data_dir=DATA_DIR)
+
+        # Find matching bets across open + resolved
+        all_bets = portfolio.get_open_positions() + portfolio.get_resolved_positions()
+        matching = [b for b in all_bets if getattr(b, 'slug', '') == slug or getattr(b, 'market_id', '') == slug]
+
+        if not matching:
+            return jsonify({"success": False, "error": "Prediction not found"}), 404
+
+        bet = matching[-1]  # Most recent
+        bet_dict = asdict(bet)
+
+        return jsonify({
+            "success": True,
+            "data": {
+                "bet": bet_dict,
+                "simulation": None,  # Placeholder for future simulation data linking
+            }
         }), 200
     except Exception as exc:
         return jsonify({"success": False, "error": str(exc)}), 500
