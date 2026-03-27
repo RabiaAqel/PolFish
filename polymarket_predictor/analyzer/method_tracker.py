@@ -75,8 +75,8 @@ class MethodTracker:
     Adjusts blending weights based on which method is performing better.
     """
 
-    DEFAULT_LLM_WEIGHT = 0.40
-    DEFAULT_QUANT_WEIGHT = 0.60
+    DEFAULT_LLM_WEIGHT = 0.25    # Was 0.40 — WEEX 200-agent study: organic discourse 3x more accurate
+    DEFAULT_QUANT_WEIGHT = 0.75  # Was 0.60 — quantitative analyzer gets 75% weight
     MIN_WEIGHT = 0.15  # Never go below 15% for either method
     MAX_WEIGHT = 0.85  # Never go above 85% for either method
     MIN_RESOLVED_FOR_ADJUSTMENT = 10  # Need 10+ resolved before adjusting

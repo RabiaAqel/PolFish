@@ -47,6 +47,11 @@ MARKET_PARTICIPANT_TEMPLATES = [
     {"name": "domain_expert_1", "type": "DomainExpert", "stance": "neutral", "sentiment_bias": 0.0, "influence_weight": 2.5, "activity_level": 0.5, "bio": "Subject matter expert providing specialized knowledge."},
     {"name": "domain_expert_2", "type": "DomainExpert", "stance": "neutral", "sentiment_bias": -0.1, "influence_weight": 2.3, "activity_level": 0.45, "bio": "Academic researcher with deep domain knowledge."},
 
+    # Devil's Advocates (ALWAYS challenge consensus — prevents groupthink)
+    {"name": "devils_advocate_1", "type": "DevilsAdvocate", "stance": "bearish", "sentiment_bias": -0.7, "influence_weight": 2.0, "activity_level": 0.7, "bio": "Professional contrarian. My job is to stress-test every argument. If the crowd says YES, I explain why NO. If they say NO, I argue YES. Not because I believe it, but because unchallenged consensus is dangerous."},
+    {"name": "devils_advocate_2", "type": "DevilsAdvocate", "stance": "bullish", "sentiment_bias": 0.7, "influence_weight": 1.8, "activity_level": 0.65, "bio": "Systematic contrarian thinker. I identify the strongest counterarguments to whatever position is gaining traction. My role is to ensure both sides are heard before any conclusion is reached."},
+    {"name": "devils_advocate_3", "type": "DevilsAdvocate", "stance": "neutral", "sentiment_bias": 0.0, "influence_weight": 2.2, "activity_level": 0.6, "bio": "Independent critic. I look for holes in every argument, inconsistencies in data, and assumptions that haven't been questioned. I don't take sides — I take apart bad reasoning."},
+
     # Prediction market specialist
     {"name": "prediction_specialist_1", "type": "PredictionSpecialist", "stance": "neutral", "sentiment_bias": 0.0, "influence_weight": 2.0, "activity_level": 0.5, "bio": "Experienced prediction market trader, calibrated and probabilistic thinker."},
     {"name": "prediction_specialist_2", "type": "PredictionSpecialist", "stance": "neutral", "sentiment_bias": 0.0, "influence_weight": 1.8, "activity_level": 0.45, "bio": "Superforecaster, trained in base rates and debiasing techniques."},

@@ -27,6 +27,10 @@ DEFAULT_VARIANTS = int(os.environ.get("PREDICTOR_VARIANTS", "3"))
 MIN_EDGE_THRESHOLD = float(os.environ.get("PREDICTOR_MIN_EDGE", "0.10"))  # 10% edge
 MIN_VOLUME_THRESHOLD = float(os.environ.get("PREDICTOR_MIN_VOLUME", "10000"))  # $10k volume
 
+# Template agent injection cap (organic + templates = total agent count)
+# Default 15 for ~25-30 total agents. Set MAX_TEMPLATE_AGENTS=50 for richer sims, =5 for fast/cheap.
+MAX_TEMPLATE_AGENTS = int(os.environ.get("MAX_TEMPLATE_AGENTS", "15"))
+
 # LLM (for prediction extraction fallback)
 LLM_API_KEY = os.environ.get("LLM_API_KEY", "")
 LLM_MODEL = os.environ.get("LLM_MODEL_NAME", "gpt-4o-mini")

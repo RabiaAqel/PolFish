@@ -8,7 +8,7 @@ from pathlib import Path
 
 import httpx
 
-from polymarket_predictor.config import DEFAULT_MAX_ROUNDS, MIROFISH_API_URL
+from polymarket_predictor.config import DEFAULT_MAX_ROUNDS, MAX_TEMPLATE_AGENTS, MIROFISH_API_URL
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +55,7 @@ class MiroFishPipeline:
         logger.info("Simulation prepared: %s", sim_id)
 
         # Step 3.5: Inject template agents + patch OASIS fields
-        injected = self.inject_template_agents(sim_id)
+        injected = self.inject_template_agents(sim_id, max_templates=MAX_TEMPLATE_AGENTS)
         if injected > 0:
             logger.info("Injected %d template agents into %s", injected, sim_id)
         # MUST run LAST — after all profile modifications, right before simulation

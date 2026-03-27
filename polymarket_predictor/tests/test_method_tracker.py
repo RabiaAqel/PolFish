@@ -45,8 +45,8 @@ class TestInitialWeights:
 
     def test_initial_weights(self, tmp_path):
         tracker = MethodTracker(data_dir=tmp_path)
-        assert tracker.llm_weight == pytest.approx(0.40)
-        assert tracker.quant_weight == pytest.approx(0.60)
+        assert tracker.llm_weight == pytest.approx(0.25)
+        assert tracker.quant_weight == pytest.approx(0.75)
 
     def test_weights_sum_to_one(self, tmp_path):
         tracker = MethodTracker(data_dir=tmp_path)
@@ -63,13 +63,13 @@ class TestBlend:
     def test_blend_with_default_weights(self, tmp_path):
         tracker = MethodTracker(data_dir=tmp_path)
         result = tracker.blend(llm_pred=0.8, quant_pred=0.6)
-        expected = 0.4 * 0.8 + 0.6 * 0.6  # = 0.32 + 0.36 = 0.68
+        expected = 0.25 * 0.8 + 0.75 * 0.6  # = 0.20 + 0.45 = 0.65
         assert result == pytest.approx(expected)
 
     def test_blend_extremes(self, tmp_path):
         tracker = MethodTracker(data_dir=tmp_path)
         result = tracker.blend(llm_pred=1.0, quant_pred=0.0)
-        assert result == pytest.approx(0.4)
+        assert result == pytest.approx(0.25)
 
 
 # ---------------------------------------------------------------------------
