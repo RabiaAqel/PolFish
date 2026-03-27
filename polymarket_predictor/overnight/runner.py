@@ -31,10 +31,13 @@ class OvernightRunner:
         await runner.run()  # Resumes from last checkpoint if interrupted
     """
 
-    def __init__(self, total: int = 50, budget: float = 25.0, data_dir: Path = None):
+    def __init__(self, total: int = 50, budget: float = 25.0, data_dir: Path = None,
+                 max_hours_ahead: float = 0, market_filter: str = ""):
         self._sm = StateManager(data_dir=data_dir or DATA_DIR)
         self._total = total
         self._budget = budget
+        self._max_hours_ahead = max_hours_ahead  # 0 = use default days_ahead
+        self._market_filter = market_filter  # e.g. "4h" to only pick 4-hour markets
         self._stop_requested = False
 
     def request_stop(self):
@@ -125,19 +128,28 @@ class OvernightRunner:
             groups = []
             try:
                 async with MarketScanner() as scanner:
+                    # Use max_hours_ahead if set, otherwise default to 30 days
+                    scan_days = self._max_hours_ahead / 24 if self._max_hours_ahead > 0 else 30
                     interesting = await scanner.scan_interesting(
-                        days_ahead=30,
+                        days_ahead=scan_days,
                         min_volume=100,
                         odds_range=(0.10, 0.90),
                     )
                     # Filter out already-processed and ultra-short HF markets
-                    # 5m/15m too simple for deep — 1h/4h/daily are OK
                     SKIP_HF = ("-5m-", "-15m-")
                     candidates = [
                         m for m in interesting
                         if m.slug not in state.processed_slugs
                         and not any(p in m.slug for p in SKIP_HF)
                     ]
+
+                    # Apply market filter if set (e.g. "4h" to only pick 4-hour markets)
+                    if self._market_filter:
+                        filters = [f.strip() for f in self._market_filter.split(",")]
+                        candidates = [
+                            m for m in candidates
+                            if any(f in m.slug for f in filters)
+                        ]
 
                 if not candidates:
                     push_log("No new markets found — all available markets processed", level="info")

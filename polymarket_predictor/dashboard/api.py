@@ -1399,9 +1399,15 @@ def overnight_start():
     data = request.get_json(silent=True) or {}
     total = int(data.get("total", 50))
     budget = float(data.get("budget", 25.0))
+    max_hours_ahead = float(data.get("max_hours_ahead", 0))
+    market_filter = data.get("market_filter", "")
 
     from polymarket_predictor.overnight.runner import OvernightRunner
-    _overnight_runner = OvernightRunner(total=total, budget=budget)
+    _overnight_runner = OvernightRunner(
+        total=total, budget=budget,
+        max_hours_ahead=max_hours_ahead,
+        market_filter=market_filter,
+    )
 
     def _run():
         asyncio.run(_overnight_runner.run())

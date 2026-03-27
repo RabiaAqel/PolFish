@@ -1,29 +1,27 @@
 {
-  "run_id": "overnight_20260326_225525",
+  "run_id": "overnight_20260327_174436",
   "mode": "overnight",
-  "status": "running",
+  "status": "completed",
   "total_target": 1,
-  "max_budget_usd": 1.0,
+  "max_budget_usd": 0.5,
   "current_round": 0,
   "completed": 0,
   "failed": 0,
   "skipped": 0,
-  "current_market": "will-tisza-respect-and-freedom-party-tisza-win-the-most-seats-in-the-next-hungarian-parliamentary-election",
-  "current_phase": "predicting",
+  "current_market": null,
+  "current_phase": "scanning",
   "results": [],
   "errors": [],
   "total_cost_usd": 0.0,
-  "started_at": "2026-03-26T20:55:25.415143+00:00",
-  "last_checkpoint_at": "2026-03-26T22:55:30",
+  "started_at": "2026-03-27T14:44:36.003669+00:00",
+  "last_checkpoint_at": "2026-03-27T17:44:38",
   "paused_at": null,
-  "completed_at": null,
+  "completed_at": "2026-03-27T14:44:38.310754+00:00",
   "round_interval_seconds": 3600,
   "lifetime_rounds": 0,
   "lifetime_bets": 0,
   "lifetime_pnl": 0.0,
   "lifetime_cost": 0.0,
   "strategy_version": 1,
-  "processed_slugs": [
-    "will-tisza-respect-and-freedom-party-tisza-win-the-most-seats-in-the-next-hungarian-parliamentary-election"
-  ]
+  "processed_slugs": []
 }

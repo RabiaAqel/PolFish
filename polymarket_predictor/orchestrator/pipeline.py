@@ -54,10 +54,12 @@ class MiroFishPipeline:
         await self.prepare_simulation(sim_id)
         logger.info("Simulation prepared: %s", sim_id)
 
-        # Step 3.5: Inject template agents for richer simulation dynamics
+        # Step 3.5: Inject template agents + patch OASIS fields
         injected = self.inject_template_agents(sim_id)
         if injected > 0:
             logger.info("Injected %d template agents into %s", injected, sim_id)
+        # MUST run LAST — after all profile modifications, right before simulation
+        self._patch_oasis_profiles(sim_id)
 
         # Step 4: Run simulation
         await self.run_simulation(sim_id, max_rounds)
@@ -215,6 +217,42 @@ class MiroFishPipeline:
                 break
             if status in ("error", "failed"):
                 raise PipelineError(f"Simulation failed: {status_data.get('error', 'unknown')}")
+
+    def _patch_oasis_profiles(self, simulation_id: str) -> None:
+        """Ensure ALL Reddit profiles have OASIS-required fields (mbti, gender, age, country).
+
+        MiroFish's profile generator sometimes omits these fields, causing
+        OASIS's agent_generator to crash with KeyError: 'mbti'.
+        """
+        logger.info("Patching OASIS profiles for %s...", simulation_id)
+        try:
+            sim_dir = self._SIM_DATA_DIR / simulation_id
+            reddit_path = sim_dir / "reddit_profiles.json"
+            if not reddit_path.exists():
+                return
+
+            profiles = json.loads(reddit_path.read_text(encoding="utf-8"))
+            mbti_types = ["INTJ", "ENTP", "ISFJ", "ESTP", "INFP", "ENTJ", "ISTJ", "ENFP"]
+            genders = ["male", "female", "non-binary"]
+            countries = ["US", "UK", "Canada", "Germany", "Japan", "Australia", "India", "France"]
+
+            patched = 0
+            for j, profile in enumerate(profiles):
+                if "mbti" not in profile:
+                    profile["mbti"] = mbti_types[j % len(mbti_types)]
+                    patched += 1
+                if "gender" not in profile:
+                    profile["gender"] = genders[j % len(genders)]
+                if "age" not in profile:
+                    profile["age"] = 25 + (j * 3) % 40
+                if "country" not in profile:
+                    profile["country"] = countries[j % len(countries)]
+
+            if patched > 0:
+                reddit_path.write_text(json.dumps(profiles, indent=2, ensure_ascii=False), encoding="utf-8")
+                logger.info("Patched %d profiles with missing OASIS fields in %s", patched, simulation_id)
+        except Exception as e:
+            logger.error("Profile patching failed for %s: %s", simulation_id, e, exc_info=True)
 
     async def generate_report(self, simulation_id: str) -> dict:
         """Generate a report and block until it is ready.
