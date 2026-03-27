@@ -596,6 +596,28 @@ Then restart the backend.
 
 ---
 
+### Backend restart kills in-memory tasks
+
+**Symptom:** Active deep predictions, autopilot cycles, or rolling loop tasks disappear after restarting the Flask backend. Tasks that were running show no results.
+
+**Cause:** Deep prediction tasks, autopilot state, and rolling loop instances are stored in in-memory Python dicts (`_deep_tasks`, `_autopilot`, `_loop`). When the Flask process restarts, all in-memory state is lost. Unlike portfolio data and the decision ledger (which persist to JSONL files on disk), running task state exists only in process memory.
+
+**What is lost on restart:**
+- All in-progress deep prediction tasks and their partial results
+- The autopilot engine instance (re-created on next request)
+- The rolling loop instance and its current cycle state
+- SSE log subscribers
+
+**What survives restart:**
+- Portfolio positions (`portfolio.jsonl`)
+- Decision ledger (`decision_ledger.jsonl`)
+- Overnight runner state (`overnight_state.json`) -- the overnight runner uses atomic file-based checkpoints specifically to survive restarts
+- All other file-based data (predictions, resolutions, strategy config, context store)
+
+**Mitigation:** If you need to restart the backend during a long-running operation, wait for the current deep prediction to complete. The overnight runner is specifically designed to survive restarts via its checkpoint system -- prefer it over ad-hoc deep predictions for batch work.
+
+---
+
 ## Diagnostic Commands
 
 ### Check system health

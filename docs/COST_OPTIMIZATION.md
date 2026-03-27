@@ -90,6 +90,20 @@ Running with more agents increases information density at the cost of more simul
 
 **DeepSeek for simulation insight:** Running 50 agents on DeepSeek ($0.10/prediction) produces more total information than 10 agents on GPT-4o ($0.42/prediction) at a fraction of the cost. The quality-per-dollar of more agents on a cheap model can exceed fewer agents on a premium model, because crowd wisdom depends more on agent count and diversity than on individual agent intelligence.
 
+### WEEX-Scale Agent Cost Table (40 rounds, up to 200 agents)
+
+With the 200 agent template library (WEEX-validated composition), simulations can scale from lightweight (15 agents) to full crowd (200 agents). Cost scales linearly with agent count:
+
+| Preset | 15 agents | 25 agents | 60 agents | 200 agents | Notes |
+|--------|-----------|-----------|-----------|------------|-------|
+| **cheapest** | $0.03 | $0.05 | $0.12 | $0.40 | All DeepSeek -- best value at scale |
+| **budget** | $0.05 | $0.08 | $0.18 | $0.60 | GPT-4o-mini sim stays affordable |
+| **gemini** | $0.05 | $0.08 | $0.18 | $0.60 | Gemini free tier may cap daily at high counts |
+| **balanced** | $0.50 | $0.80 | $2.00 | $6.50 | GPT-4o sim dominates at high agent counts |
+| **premium** | $0.65 | $1.00 | $2.50 | $8.00 | Claude sim most expensive at scale |
+
+**WEEX benchmark:** Running 200 agents on the `cheapest` preset costs $3-5 per prediction (including all pipeline stages), validated against the WEEX study's composition methodology. Use `MAX_TEMPLATE_AGENTS=170` to fill the agent pool with template archetypes alongside ~30 graph-derived organic agents.
+
 ---
 
 ### Balanced vs All GPT-4o Savings

@@ -91,7 +91,8 @@ curl -X POST http://localhost:5001/api/polymarket/predict/deep \
 - **Autopilot** -- End-to-end autonomous cycles: scan, predict, bet, resolve, optimize
 - **Ollama local model support** -- Run the entire pipeline locally at $0.00/prediction using the `local` preset, or use `hybrid_local` for local prep + cloud reports at ~$0.12/prediction
 - **Knowledge Base (context store)** -- Persistent market intelligence that accumulates over time; tracks accuracy by category, avoids re-researching the same topics, and provides cross-market context
-- **Template agent injection** -- 26 built-in market-participant archetypes (retail traders, institutional investors, contrarians, whales, superforecasters) injected alongside graph-derived agents for richer simulation dynamics
+- **200 agent templates (WEEX composition)** -- 200 built-in market-participant archetypes using WEEX-validated composition, including 3 Devil's Advocate templates that systematically challenge consensus. Configurable via `MAX_TEMPLATE_AGENTS` (default 15, WEEX-scale 170) for simulations ranging from lightweight to full-scale crowd wisdom
+- **UI/UX overhaul** -- Streamlined navigation with Predict | Trade | Research (dropdown) | Settings (gear icon) for faster workflow access
 - **Superforecaster prompt methodology** -- Report generation uses a structured 6-step Superforecaster process (decompose, base rates, evidence, factors, calibrate, predict) to reduce LLM default-probability bias
 - **Dynamic cost estimation** -- Costs computed from actual model config and token pricing, replacing the earlier hardcoded $0.42 assumption
 - **Enhanced Gamma API** -- Market search, event sub-market fetching, order book summaries, and tradable market filtering
@@ -142,7 +143,7 @@ mirofish/
     knowledge/                 # Persistent market intelligence (context store)
       context_store.py         # MarketContext records, accuracy tracking
     agents/                    # Template agent archetypes
-      templates.py             # 26 market-participant templates
+      templates.py             # 200 market-participant templates (WEEX composition)
     scanner/                   # Market discovery and ranking
     orchestrator/              # MiroFish pipeline driver
     parser/                    # Prediction extraction from reports
@@ -165,7 +166,7 @@ mirofish/
     autopilot/                 # Fully autonomous prediction cycles
     ledger/                    # Append-only decision audit log
     loop/                      # Continuous trading loop runner
-    tests/                     # Test suite (523+ tests)
+    tests/                     # Test suite (531 tests)
   docs/                        # This documentation
   start.sh                     # One-command launcher
 ```

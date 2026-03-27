@@ -97,12 +97,14 @@
   |  | ContextStore              |   | TemplateAgents                   |  |
   |  | (knowledge/context_store  |   | (agents/templates.py)            |  |
   |  |  .py)                     |   |                                  |  |
-  |  | Persistent market intel:  |   | 26 market-participant archetypes |  |
-  |  | - Cross-market context    |   | injected into simulations:       |  |
+  |  | Persistent market intel:  |   | 200 agent templates (WEEX        |  |
+  |  | - Cross-market context    |   | composition validated):           |  |
   |  | - Accuracy by category    |   | - Retail/institutional traders   |  |
   |  | - Avoid re-researching    |   | - Contrarians, momentum, whales  |  |
   |  |   same topics             |   | - Domain experts, superforecasters|  |
-  |  | - Historical patterns     |   | - Includes OASIS-required fields |  |
+  |  | - Historical patterns     |   | - 3 Devil's Advocate templates   |  |
+  |  |                           |   | - Includes OASIS-required fields |  |
+  |  |                           |   | - MAX_TEMPLATE_AGENTS: 5-170     |  |
   |  +---------------------------+   +----------------------------------+  |
   |                                                                        |
   |  +---------------------------+   +----------------------------------+  |
@@ -393,7 +395,7 @@ knowledge/
     |
     v
 agents/
-  templates.py   -----> MARKET_PARTICIPANT_TEMPLATES, get_templates (26 archetypes)
+  templates.py   -----> MARKET_PARTICIPANT_TEMPLATES, get_templates (200 archetypes, WEEX composition)
     |
     v
 thesis/

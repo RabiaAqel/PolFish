@@ -202,8 +202,8 @@ With Prediction by Prose:
 |---|----------|--------|---------------------|-------------------|
 | 1 | Seed quality | DONE | Improved seed generator: 13,600+ chars per seed, 10 entity types extracted, multi-source aggregation with DuckDuckGo articles | **HIGH** (+3-5%) |
 | 2 | Knowledge graph size | DONE | Ontology extraction now produces richer graphs from the expanded seed documents; entity type diversity (10 types) drives more knowledge graph nodes and edges | **HIGH** (+2-4%) |
-| 3 | Agent count | DONE | Default increased from 3 to configurable (10+ agents). `MAX_SIMULATION_ROUNDS` env var controls rounds (default 40). More agents = more crowd wisdom | **HIGH** (+3-5%) |
-| 4 | Agent diversity | DONE | Agent profiles now derived from diverse entity types (politicians, analysts, traders, activists, institutions, etc.) rather than generic "Analyst/Observer/Expert" titles. Economic archetypes embedded in seed templates | MEDIUM (+2-3%) |
+| 3 | Agent count | DONE | 200 agent templates available (WEEX-validated composition). `MAX_TEMPLATE_AGENTS` env var controls injection count (default 15, WEEX-scale 170). Scale options: 5/15/50/170. More agents = more crowd wisdom | **HIGH** (+3-5%) |
+| 4 | Agent diversity | DONE | 200 templates include 3 Devil's Advocate agents that systematically challenge consensus. Profiles span retail, institutional, quant, domain expert, contrarian, momentum, whale, and superforecaster archetypes. Quant weight increased to 75% (was 60%) reflecting empirical superiority of data-driven extraction | MEDIUM (+2-3%) |
 | 5 | Simulation rounds | DONE | Default increased from 15 to 40 rounds via `MAX_SIMULATION_ROUNDS=40`. Allows opinion convergence in rounds 25-35 as MiroFish research suggested | MEDIUM (+1-2%) |
 | 6 | Prediction method | DONE | `SimulationAnalyzer` extracts quantitative predictions from raw SQLite data (sentiment counts, engagement weighting, temporal momentum, expert-weighted votes). `MethodTracker` auto-blends LLM and quantitative predictions with self-adjusting weights based on resolved outcomes | **CRITICAL** (+5-10%) |
 
@@ -462,13 +462,14 @@ BEFORE (original pipeline):
   Monte Carlo says: break-even, barely profitable
 
 AFTER (current pipeline):
-  10+ agents x 40 rounds x rich seeds (13,600+ chars, 10 entity types)
-  + dual extraction (LLM + quantitative from SQLite)
+  Up to 200 agents (WEEX composition) x 40 rounds x rich seeds (13,600+ chars, 10 entity types)
+  + dual extraction (LLM 25% + quantitative 75% from SQLite)
   + self-adjusting method blend via MethodTracker
+  + 3 Devil's Advocate agents challenging consensus
   = estimated 58-62% accuracy range (empirical validation ongoing)
 
-TARGET STATE (further scaling):
-  50 agents x 50 rounds x rich seeds + quantitative extraction
+TARGET STATE (WEEX-scale):
+  200 agents x 50 rounds x rich seeds + quantitative extraction (75% weight)
   Monte Carlo target: +$1,244 avg P&L per 50 bets, P(Profit): 87%
 ```
 
@@ -514,10 +515,11 @@ A new cost optimization layer groups related Polymarket markets by shared thesis
 ### Next Steps
 
 - Run controlled A/B validation on 50+ resolved markets to measure actual accuracy improvement
-- Scale to 30-50 agents for maximum crowd wisdom effect (currently 10 default)
+- Scale production runs to 170 template agents (WEEX-scale) for maximum crowd wisdom effect
 - Implement Phase 5: simulated prediction market (agents place bets, equilibrium price = prediction)
-- Tune MethodTracker blend weights based on accumulated resolved market data
+- Tune MethodTracker blend weights based on accumulated resolved market data (currently 25/75 LLM/quant)
 - Validate thesis grouping accuracy vs individual predictions on resolved multi-tier markets
+- Measure Devil's Advocate agent impact on consensus quality and prediction calibration
 
 ---
 

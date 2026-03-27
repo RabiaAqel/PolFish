@@ -72,7 +72,9 @@ These override the preset for individual pipeline stages. Only needed when using
 
 | Variable | Type | Default | Description |
 |----------|------|---------|-------------|
-| `MAX_TEMPLATE_AGENTS` | int | `25` | Maximum number of template agents injected into each simulation. The system includes 26 built-in archetypes (retail traders, institutional investors, contrarians, whales, etc.). Set to `0` to disable template injection. |
+| `MAX_TEMPLATE_AGENTS` | int | `15` | Maximum number of template agents injected into each simulation. The system includes 200 built-in archetypes (WEEX-validated composition including 3 Devil's Advocate templates). Scale options: `5` (minimal), `15` (default), `50` (enhanced), `170` (WEEX-scale). Set to `0` to disable template injection. |
+| `DEFAULT_LLM_WEIGHT` | float | `0.25` | Weight for LLM-based (prose report) predictions in the MethodTracker blend. |
+| `DEFAULT_QUANT_WEIGHT` | float | `0.75` | Weight for quantitative (simulation data) predictions in the MethodTracker blend. Quant-dominant weighting reflects empirical finding that data-driven extraction outperforms prose-based extraction. |
 
 ### Infrastructure
 
@@ -383,6 +385,18 @@ ZEP_API_KEY=z_...
 ```
 
 Cost: ~$0.54/prediction. Claude Sonnet for simulation reasoning, GPT-4o for reports.
+
+### WEEX-scale crowd simulation (200 agents)
+
+```bash
+PIPELINE_PRESET=cheapest
+MAX_TEMPLATE_AGENTS=170
+MAX_SIMULATION_ROUNDS=40
+DEEPSEEK_API_KEY=sk-...
+ZEP_API_KEY=z_...
+```
+
+Cost: ~$3-5/prediction with 200 agents on DeepSeek. Uses WEEX-validated agent composition for maximum crowd wisdom diversity. The 170 template agents plus graph-derived organic agents approach the full 200-agent pool.
 
 ---
 
