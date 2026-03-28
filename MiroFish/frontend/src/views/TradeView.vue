@@ -215,7 +215,7 @@
             <th>Odds</th>
             <th>Prediction</th>
             <th>Side</th>
-            <th>Amount</th>
+            <th>Bet</th>
             <th>Outcome</th>
             <th>P&amp;L</th>
             <th>Closes</th>
@@ -274,9 +274,11 @@
             <th>Odds</th>
             <th>Prediction</th>
             <th>Side</th>
-            <th>Amount</th>
+            <th>Bet</th>
+            <th>Payout</th>
             <th>Outcome</th>
             <th>P&amp;L</th>
+            <th>Return</th>
             <th>Placed</th>
           </tr>
         </thead>
@@ -309,13 +311,19 @@
                 </span>
               </span>
             </td>
+            <td :class="(pos.payout || 0) > 0 ? 'pnl-pos' : 'pnl-neg'" style="font-family:'JetBrains Mono',monospace;font-size:13px">
+              {{ (pos.payout || 0) > 0 ? '$' + (pos.payout).toFixed(2) : '$0.00' }}
+            </td>
             <td>
               <span class="outcome-badge" :class="(pos.pnl || 0) >= 0 ? 'outcome-win' : 'outcome-loss'">
                 {{ (pos.pnl || 0) >= 0 ? 'WIN' : 'LOSS' }}
               </span>
             </td>
-            <td :class="(pos.pnl || 0) >= 0 ? 'pnl-pos' : 'pnl-neg'">
-              ${{ (pos.pnl || 0) >= 0 ? '+' : '' }}{{ (pos.pnl || 0).toFixed(2) }}
+            <td :class="(pos.pnl || 0) >= 0 ? 'pnl-pos' : 'pnl-neg'" style="font-family:'JetBrains Mono',monospace;font-size:13px">
+              {{ (pos.pnl || 0) >= 0 ? '+' : '' }}${{ Math.abs(pos.pnl || 0).toFixed(2) }}
+            </td>
+            <td :class="(pos.pnl || 0) >= 0 ? 'pnl-pos' : 'pnl-neg'" style="font-family:'JetBrains Mono',monospace;font-size:12px">
+              {{ pos.amount > 0 ? ((pos.pnl || 0) >= 0 ? '+' : '') + ((pos.pnl || 0) / pos.amount * 100).toFixed(0) + '%' : '--' }}
             </td>
             <td class="ts-cell">{{ formatTs(pos.placed_at) }}</td>
           </tr>
