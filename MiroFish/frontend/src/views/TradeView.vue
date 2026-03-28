@@ -246,7 +246,11 @@
                   <span class="bt-row"><span class="bt-key">Kelly</span><span class="bt-val">{{ pos.kelly_fraction != null ? pos.kelly_fraction.toFixed(2) : '--' }}</span></span>
                   <span class="bt-row"><span class="bt-key">Confidence</span><span class="bt-val">{{ pos.confidence || '--' }}</span></span>
                   <span class="bt-row"><span class="bt-key">Mode</span><span class="bt-val">{{ pos.mode || 'quick' }}</span></span>
-                  <span class="bt-row"><span class="bt-key">Max bet</span><span class="bt-val">{{ pos.max_bet_pct ? (pos.max_bet_pct * 100).toFixed(0) + '%' : '5%' }} of balance</span></span>
+                  <span class="bt-row" v-if="pos.agents_count"><span class="bt-key">Agents</span><span class="bt-val">{{ pos.agents_count }}</span></span>
+                  <span class="bt-row" v-if="pos.rounds"><span class="bt-key">Rounds</span><span class="bt-val">{{ pos.rounds }}</span></span>
+                  <span class="bt-row" v-if="pos.preset"><span class="bt-key">Preset</span><span class="bt-val">{{ pos.preset }}</span></span>
+                  <span class="bt-row" v-if="pos.simulation_model"><span class="bt-key">Sim Model</span><span class="bt-val">{{ pos.simulation_model }}</span></span>
+                  <span class="bt-row" v-if="pos.report_model"><span class="bt-key">Report Model</span><span class="bt-val">{{ pos.report_model }}</span></span>
                   <span class="bt-row" v-if="pos.cost_usd > 0 || pos.mode === 'deep'"><span class="bt-key">API Cost</span><span class="bt-val" style="color:#FF4500">{{ pos.cost_usd ? '$' + pos.cost_usd.toFixed(2) : '~$2.70 est' }}</span></span>
                 </span>
               </span>
@@ -306,7 +310,11 @@
                   <span class="bt-row"><span class="bt-key">Kelly</span><span class="bt-val">{{ pos.kelly_fraction != null ? pos.kelly_fraction.toFixed(2) : '--' }}</span></span>
                   <span class="bt-row"><span class="bt-key">Confidence</span><span class="bt-val">{{ pos.confidence || '--' }}</span></span>
                   <span class="bt-row"><span class="bt-key">Mode</span><span class="bt-val">{{ pos.mode || 'quick' }}</span></span>
-                  <span class="bt-row"><span class="bt-key">Max bet</span><span class="bt-val">{{ pos.max_bet_pct ? (pos.max_bet_pct * 100).toFixed(0) + '%' : '5%' }} of balance</span></span>
+                  <span class="bt-row" v-if="pos.agents_count"><span class="bt-key">Agents</span><span class="bt-val">{{ pos.agents_count }}</span></span>
+                  <span class="bt-row" v-if="pos.rounds"><span class="bt-key">Rounds</span><span class="bt-val">{{ pos.rounds }}</span></span>
+                  <span class="bt-row" v-if="pos.preset"><span class="bt-key">Preset</span><span class="bt-val">{{ pos.preset }}</span></span>
+                  <span class="bt-row" v-if="pos.simulation_model"><span class="bt-key">Sim Model</span><span class="bt-val">{{ pos.simulation_model }}</span></span>
+                  <span class="bt-row" v-if="pos.report_model"><span class="bt-key">Report Model</span><span class="bt-val">{{ pos.report_model }}</span></span>
                   <span class="bt-row" v-if="pos.cost_usd > 0 || pos.mode === 'deep'"><span class="bt-key">API Cost</span><span class="bt-val" style="color:#FF4500">{{ pos.cost_usd ? '$' + pos.cost_usd.toFixed(2) : '~$2.70 est' }}</span></span>
                 </span>
               </span>

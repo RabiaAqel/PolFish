@@ -45,6 +45,12 @@ class BetRecord:
     mode: str = "quick"           # "quick" or "deep"
     kelly_fraction: float = 0.0   # Kelly fraction used
     cost_usd: float = 0.0         # API cost for deep predictions
+    # Pipeline parameters
+    agents_count: int = 0          # Total agents in simulation
+    rounds: int = 0                # Simulation rounds run
+    preset: str = ""               # Pipeline preset (balanced, cheapest, etc.)
+    simulation_model: str = ""     # Model for simulation step
+    report_model: str = ""         # Model for report generation
 
     def __post_init__(self) -> None:
         if not self.placed_at:

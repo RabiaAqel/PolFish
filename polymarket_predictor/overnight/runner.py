@@ -16,7 +16,7 @@ from typing import Optional
 from polymarket_predictor.overnight.state import (
     StateManager, RunState, PredictionResult
 )
-from polymarket_predictor.config import DATA_DIR, DEFAULT_MAX_ROUNDS
+from polymarket_predictor.config import DATA_DIR, DEFAULT_MAX_ROUNDS, PIPELINE_PRESET, get_stage_config
 from polymarket_predictor.cost_calculator import CostCalculator
 from polymarket_predictor.knowledge.context_store import ContextStore, MarketContext
 
@@ -429,6 +429,11 @@ class OvernightRunner:
                                     mode="deep",
                                     kelly_fraction=bet_info.get("kelly_fraction", 0.0),
                                     cost_usd=result.cost_usd,
+                                    agents_count=getattr(result, 'agents_count', 0),
+                                    rounds=DEFAULT_MAX_ROUNDS,
+                                    preset=PIPELINE_PRESET,
+                                    simulation_model=get_stage_config("simulation")["model"],
+                                    report_model=get_stage_config("report")["model"],
                                 )
                                 result.side = tp.side
                                 result.bet_amount = bet_info["amount"]
@@ -500,6 +505,11 @@ class OvernightRunner:
                                 mode="deep",
                                 kelly_fraction=bet_info.get("kelly_fraction", 0.0),
                                 cost_usd=result.cost_usd,
+                                agents_count=getattr(result, 'agents_count', 0),
+                                rounds=DEFAULT_MAX_ROUNDS,
+                                preset=PIPELINE_PRESET,
+                                simulation_model=get_stage_config("simulation")["model"],
+                                report_model=get_stage_config("report")["model"],
                             )
                             result.side = side
                             result.bet_amount = bet_info["amount"]
