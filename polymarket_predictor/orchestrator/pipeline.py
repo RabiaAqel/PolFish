@@ -304,8 +304,9 @@ class MiroFishPipeline:
         """Inject template market-participant agents into an already-prepared simulation.
 
         This adds universal archetypes (retail traders, whales, contrarians, etc.)
-        on top of the graph-derived organic agents, pushing agent count from ~10-20
-        to ~40-50 without requiring richer seed documents.
+        on top of the graph-derived organic agents. Each template bio is ENRICHED
+        with market-specific context from the seed document so agents have real
+        knowledge to debate with, not just generic one-liners.
 
         The method modifies three on-disk artefacts:
           1. simulation_config.json  — appends agent_configs entries
@@ -330,6 +331,42 @@ class MiroFishPipeline:
             max_existing_id = max((a.get("agent_id", 0) for a in existing_agents), default=-1)
 
             templates = get_templates(max_agents=max_templates)
+
+            # --- Enrich template bios with market context ---
+            # Read the seed document to inject real knowledge into each persona
+            market_context = ""
+            sim_requirement = config.get("simulation_requirement", "")
+            project_id = config.get("project_id", "")
+            if project_id:
+                proj_dir = self._SIM_DATA_DIR.parent / "projects" / project_id
+                text_path = proj_dir / "extracted_text.txt"
+                if text_path.exists():
+                    seed_text = text_path.read_text(encoding="utf-8")[:3000]  # First 3K chars
+                    # Extract key facts for persona enrichment
+                    market_context = seed_text[:1500]  # Condensed context
+                    logger.info("Enriching template bios with %d chars of market context", len(market_context))
+
+            if market_context:
+                for tmpl in templates:
+                    role = tmpl["type"]
+                    stance = tmpl["stance"]
+                    original_bio = tmpl["bio"]
+
+                    # Build a rich persona that combines the archetype with market knowledge
+                    stance_view = {
+                        "bullish": "You tend to see opportunities and upside potential in this situation.",
+                        "bearish": "You tend to identify risks, problems, and reasons this could go wrong.",
+                        "neutral": "You weigh both sides carefully and form opinions based on evidence.",
+                    }.get(stance, "")
+
+                    enriched_bio = (
+                        f"{original_bio} "
+                        f"\n\n[MARKET CONTEXT] The current discussion is about: {sim_requirement[:200]}. "
+                        f"\n\n[YOUR PERSPECTIVE] As a {role}, {stance_view} "
+                        f"Base your posts and comments on the following information:\n"
+                        f"{market_context[:800]}"
+                    )
+                    tmpl["_enriched_bio"] = enriched_bio
 
             # --- 1. Append agent configs ---
             for i, tmpl in enumerate(templates):
@@ -369,12 +406,14 @@ class MiroFishPipeline:
                 countries = ["US", "UK", "Canada", "Germany", "Japan", "Australia", "India", "France"]
 
                 for i, tmpl in enumerate(templates):
+                    # Use enriched bio if available, otherwise original
+                    rich_bio = tmpl.get("_enriched_bio", tmpl["bio"])
                     reddit_profiles.append({
                         "user_id": next_uid + i,
                         "username": tmpl["name"],
                         "name": tmpl["name"].replace("_", " ").title(),
-                        "bio": tmpl["bio"],
-                        "persona": tmpl["bio"],
+                        "bio": rich_bio[:150],  # Short bio for display
+                        "persona": rich_bio,    # Full enriched persona for LLM
                         "karma": 100,
                         "created_at": "2024-01-01T00:00:00",
                         "profession": tmpl["type"],
@@ -412,12 +451,13 @@ class MiroFishPipeline:
                 next_uid = max((int(r.get("user_id", 0)) for r in existing_rows), default=-1) + 1 if existing_rows else 0
 
                 for i, tmpl in enumerate(templates):
+                    rich_bio_tw = tmpl.get("_enriched_bio", tmpl["bio"])
                     row = {
                         "user_id": str(next_uid + i),
                         "username": tmpl["name"],
                         "name": tmpl["name"].replace("_", " ").title(),
-                        "bio": tmpl["bio"],
-                        "persona": tmpl["bio"],
+                        "bio": rich_bio_tw[:150],
+                        "persona": rich_bio_tw,
                         "friend_count": "50",
                         "follower_count": str(int(tmpl["influence_weight"] * 1000)),
                         "statuses_count": "100",

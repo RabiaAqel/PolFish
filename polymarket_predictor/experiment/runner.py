@@ -188,17 +188,28 @@ class ExperimentRunner:
         push_log(f"[EXPERIMENT] Odds: {yes_price:.0%} | Category: {category} | Closes: {closes_at[:10]}")
         push_log(f"[EXPERIMENT] Running {len(configs)} configurations" + (" + control" if include_control else ""))
 
-        # Generate seed ONCE (shared across all configs)
-        push_log("[EXPERIMENT] Generating shared seed document...")
+        # Generate seed ONCE (shared across all configs) — use DEEP research
+        push_log("[EXPERIMENT] Generating shared seed document (deep research)...")
         news = NewsAggregator()
+        gen = SeedGenerator()
         try:
-            articles = await news.search_articles(market.question, max_results=5)
+            try:
+                research = await news.search_articles_deep(
+                    market.question, max_results=10, market_slug=market_slug,
+                )
+                seed_path = gen.generate_deep_seed(market, research, variant="balanced")
+                push_log(
+                    f"[EXPERIMENT] Deep seed: {seed_path.stat().st_size:,} bytes, "
+                    f"{research.sources_count} sources, {research.total_words} words"
+                )
+            except Exception as e:
+                logger.warning("Deep research failed, falling back to basic: %s", e)
+                push_log(f"[EXPERIMENT] Deep research failed ({e}), using basic seed")
+                articles = await news.search_articles(market.question, max_results=5)
+                seed_path = gen.generate_seed(market, articles, variant="balanced")
+                push_log(f"[EXPERIMENT] Basic seed: {seed_path.stat().st_size} bytes, {len(articles)} articles")
         finally:
             await news.close()
-
-        gen = SeedGenerator()
-        seed_path = gen.generate_seed(market, articles, variant="balanced")
-        push_log(f"[EXPERIMENT] Seed: {seed_path.stat().st_size} bytes, {len(articles)} articles")
 
         portfolio = PaperPortfolio(data_dir=DATA_DIR)
         sizer = BetSizer()
@@ -313,14 +324,9 @@ class ExperimentRunner:
                             odds=yes_price, closes_at=closes_at,
                             prediction=quant_pred,
                             edge=abs_edge, confidence=prediction.confidence,
-                            mode="experiment",
+                            mode=f"experiment_{config.name}",
                             kelly_fraction=bet_info.get("kelly_fraction", 0.0),
                             cost_usd=result.cost_usd,
-                            agents_count=result.agents_count,
-                            rounds=config.rounds,
-                            preset=config.preset,
-                            simulation_model=result.simulation_model,
-                            report_model=result.report_model,
                         )
                         result.bet_placed = True
                         result.bet_amount = bet_info["amount"]
