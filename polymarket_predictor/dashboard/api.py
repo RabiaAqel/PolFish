@@ -1797,3 +1797,63 @@ def knowledge_stats():
             "accuracy": store.get_accuracy_by_category(),
         },
     })
+
+
+# --- Experiment endpoints ---
+
+_experiment_runner = None
+
+
+@dashboard_bp.route("/experiment/run", methods=["POST"])
+def experiment_run():
+    """Run one experiment round.
+    Body: {
+        "market_slug": "...",
+        "configs": [
+            {"name": "50_agents", "agents": 35, "rounds": 10, "preset": "cheapest"},
+            {"name": "200_agents", "agents": 170, "rounds": 10, "preset": "cheapest"}
+        ],
+        "include_control": true
+    }
+    """
+    global _experiment_runner
+    data = request.get_json(silent=True) or {}
+
+    slug = data.get("market_slug", "").strip()
+    if not slug:
+        return jsonify({"success": False, "error": "market_slug required"}), 400
+
+    configs_raw = data.get("configs", [])
+    if not configs_raw:
+        return jsonify({"success": False, "error": "configs required"}), 400
+
+    from polymarket_predictor.experiment.runner import ExperimentRunner, ExperimentConfig
+
+    configs = [ExperimentConfig(**c) for c in configs_raw]
+    include_control = data.get("include_control", True)
+
+    _experiment_runner = ExperimentRunner()
+
+    task_id = uuid.uuid4().hex[:12]
+    _deep_tasks[task_id] = {"status": "running", "type": "experiment"}
+
+    def _run():
+        try:
+            result = asyncio.run(_experiment_runner.run_round(slug, configs, include_control))
+            _deep_tasks[task_id].update({"status": "completed", "result": asdict(result)})
+        except Exception as e:
+            logger.exception("Experiment failed")
+            _deep_tasks[task_id].update({"status": "failed", "error": str(e)})
+
+    thread = threading.Thread(target=_run, daemon=True)
+    thread.start()
+
+    return jsonify({"success": True, "task_id": task_id, "status": "running"}), 202
+
+
+@dashboard_bp.route("/experiment/status", methods=["GET"])
+def experiment_status():
+    """Get experiment state."""
+    from polymarket_predictor.experiment.runner import ExperimentRunner
+    runner = ExperimentRunner()
+    return jsonify({"success": True, "data": runner.get_state()})
